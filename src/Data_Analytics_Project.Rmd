@@ -1,0 +1,218 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.2
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import pandas as pd
+import nltk
+from nltk.tokenize import word_tokenize
+
+from collections import Counter
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+import pickle
+# import igraph as ig
+import networkx as nx
+from networkx.algorithms.community import greedy_modularity_communities
+```
+
+```{python}
+data = pd.read_json('../data/products.json', lines=True)
+data.head(3)
+```
+
+```{python}
+categories = data['category'].value_counts()
+print("number of categories: {}".format(len(categories)))
+print("Categories:")
+print(categories)
+```
+
+# Network
+
+
+## Creation
+
+```{python}
+# NETWORK
+#edge_list = pd.DataFrame(columns=['from','to'])
+edges = []
+for i, row in data.iterrows():
+    for subrow in row['bought_together']:
+        #print(row['_id'], ' ', subrow)
+        #edge_list.append({'from': row['_id'], 'to': subrow}, ignore_index = True)
+        ft = {'from': row['_id'], 'to': subrow, 'weight': 3}
+        edges.append(ft)
+    for subrow in row['also_bought']:
+        ft = {'from': row['_id'], 'to': subrow, 'weight': 2}
+        edges.append(ft)
+    for subrow in row['also_viewed']:
+        ft = {'from': row['_id'], 'to': subrow, 'weight': 1}
+        edges.append(ft)
+    #if i > 250:
+    #       break
+edges = pd.DataFrame(edges)
+nodes = data['_id']
+print("# edges:", len(edges))
+print("# nodes:", len(nodes))
+```
+
+```{python}
+def filterEdges(edges, weight):
+    return edges.loc[edges['weight']==weight]
+    
+```
+
+```{python}
+# network for bought_together
+edges_bt = filterEdges(edges, 3)
+G_bt = nx.from_pandas_edgelist(edges_bt, source='from', target='to')
+print("### bought_together ###")
+print("# nodes:", len(nodes))
+print("# edges:", len(edges_bt))
+print()
+# network for also_bought
+edges_ab = filterEdges(edges, 2)
+G_ab = nx.from_pandas_edgelist(edges_ab, source='from', target='to')
+print("### also_bought ###")
+print("# nodes:", len(nodes))
+print("# edges:", len(edges_ab))
+print()
+
+# network for also_viewed
+edges_av = filterEdges(edges, 1)
+G_av = nx.from_pandas_edgelist(edges_av, source='from', target='to')
+print("### also_viewed ###")
+print("# nodes:", len(nodes))
+print("# edges:", len(edges_av))
+print()
+
+
+```
+
+## Communities
+
+```{python}
+# communities detection
+def getCommunities(network):
+    return sorted(greedy_modularity_communities(network), key=len, reverse=True)
+    
+
+```
+
+```{python}
+communities_bt = getCommunities(G_bt)
+print("# communities bt:", len(communities_bt))
+
+communities_ab = getCommunities(G_ab)
+print("# communities ab:", len(communities_ab))
+
+communities_av = getCommunities(G_av)
+print("# communities av:", len(communities_av))
+
+```
+
+### bt examples
+
+```{python}
+# products in a community
+
+communities_bt_list =[list(x) for x in communities_bt]
+community_bt_1 = communities_bt_list[0]
+community_bt_1
+print(data.loc[data['_id'].isin(community_bt_1)])
+data.loc[data['_id'].isin(community_bt_1)].groupby('category').count()
+# print(len(data.loc[data['category']=='musical-instruments']))
+
+```
+
+```{python}
+community_bt_2 = communities_bt_list[1]
+community_bt_2
+data.loc[data['_id'].isin(community_bt_2)].groupby('category').count()
+data.loc[data['_id'].isin(community_bt_2)]
+```
+
+```{python}
+community_bt_3 = communities_bt_list[6]
+community_bt_3
+data.loc[data['_id'].isin(community_bt_3)].groupby('category').count()
+data.loc[data['_id'].isin(community_bt_3)]
+```
+
+### also viewed examples
+
+```{python}
+communities_av_list =[list(x) for x in communities_av]
+
+community_av_1 = communities_av_list[4]
+community_av_1
+print(data.loc[data['_id'].isin(community_av_1)].groupby('category').count())
+data.loc[data['_id'].isin(community_av_1)]
+```
+
+## Plot
+
+```{python}
+def set_node_community(G, communities):
+        '''Add community to node attributes'''
+        for c, v_c in enumerate(communities):
+            for v in v_c:
+                # Add 1 to save 0 for external edges
+                G.nodes[v]['community'] = c + 1
+                
+def get_color(i, r_off=1, g_off=1, b_off=1):
+        '''Assign a color to a vertex.'''
+        r0, g0, b0 = 0, 0, 0
+        n = 16
+        low, high = 0.1, 0.9
+        span = high - low
+        r = low + span * (((i + r_off) * 3) % n) / (n - 1)
+        g = low + span * (((i + g_off) * 5) % n) / (n - 1)
+        b = low + span * (((i + b_off) * 7) % n) / (n - 1)
+        return (r, g, b)
+
+def getNodeColors(graph):
+    set_node_community(graph, communities_bt)
+    return [get_color(graph.nodes[v]['community']) for v in G_bt.nodes]
+
+def readPos(fileName):
+    in_file = open(fileName,"rb")
+    text = in_file.read()
+    in_file.close()
+    return pickle.loads(text)
+
+def writePos(pos, fileName):
+    out_file = open(fileName,"wb")
+    out_file.write(pickle.dumps(pos))
+    out_file.close()
+
+def plotNetworkWithExistingPos(graph, fileName):
+    pos = readPos(fileName)
+    plt.figure(figsize=(100,100))
+    node_colors = getNodeColors(graph)
+    nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color)
+
+def plotNetworkNew(graph, fileName):
+    pos = nx.spring_layout(graph, k=0.1)
+    writePos(pos, fileName)
+    plt.figure(figsize=(100,100))
+    node_colors = getNodeColors(graph)
+    # vedere se aggiungere nodelist=nodes[category==...] per fare solo categories piu importanti
+    nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color)
+```
+
+```{python}
+plotNetworkWithExistingPos(G_bt, 'pos.txt')
+```
