@@ -18,6 +18,7 @@ import nltk
 from nltk.tokenize import word_tokenize
 
 from collections import Counter
+# #%matplotlib notebook
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -184,8 +185,7 @@ def get_color(i, r_off=1, g_off=1, b_off=1):
         return (r, g, b)
 
 def getNodeColors(graph):
-    set_node_community(graph, communities_bt)
-    return [get_color(graph.nodes[v]['community']) for v in G_bt.nodes]
+    return [get_color(graph.nodes[v]['community']) for v in graph.nodes]
 
 def readPos(fileName):
     in_file = open(fileName,"rb")
@@ -198,21 +198,54 @@ def writePos(pos, fileName):
     out_file.write(pickle.dumps(pos))
     out_file.close()
 
-def plotNetworkWithExistingPos(graph, fileName):
+def plotNetworkWithExistingPos(graph, fileName, node_size=300, figsize=(100,100)):
     pos = readPos(fileName)
-    plt.figure(figsize=(100,100))
-    node_colors = getNodeColors(graph)
-    nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color)
+    plt.figure(figsize=figsize)
+    node_color = getNodeColors(graph)
+    nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color, \
+                     edge_color="black", node_size=node_size)
 
 def plotNetworkNew(graph, fileName):
     pos = nx.spring_layout(graph, k=0.1)
     writePos(pos, fileName)
     plt.figure(figsize=(100,100))
-    node_colors = getNodeColors(graph)
+    node_color = getNodeColors(graph)
     # vedere se aggiungere nodelist=nodes[category==...] per fare solo categories piu importanti
     nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color)
 ```
 
 ```{python}
-plotNetworkWithExistingPos(G_bt, 'pos.txt')
+plotNetworkWithExistingPos(G_bt, 'pos.txt', figsize=(50,50))
+```
+
+```{python}
+def filterone(G, clist):
+    res = [v for v in G_bt.nodes if G_bt.nodes[v]["community"] in clist]
+    return res
+```
+
+```{python}
+filtered = filterone(G_bt, [1,2,3])
+len(filtered)
+```
+
+```{python}
+G_filtered=nx.Graph()
+```
+
+```{python}
+G_filtered.add_nodes_from(filtered)
+G_filtered.nodes
+```
+
+```{python}
+plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1])), 'pos.txt', node_size=80, figsize=(4,4))
+```
+
+```{python}
+plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2])), 'pos.txt', node_size=80, figsize=(4,4))
+```
+
+```{python}
+plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2,3])), 'pos.txt', node_size=80, figsize=(10,10))
 ```
