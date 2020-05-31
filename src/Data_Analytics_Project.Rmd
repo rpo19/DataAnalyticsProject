@@ -20,11 +20,13 @@ from nltk.tokenize import word_tokenize
 from collections import Counter
 # #%matplotlib notebook
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import seaborn as sns
 
 import pickle
 # import igraph as ig
 import networkx as nx
+from community import generate_dendrogram, community_louvain
 from networkx.algorithms.community import greedy_modularity_communities
 ```
 
@@ -109,7 +111,8 @@ print()
 def getCommunities(network):
     return sorted(greedy_modularity_communities(network), key=len, reverse=True)
     
-
+def getCommunitiesLouvein(network):
+    return community_louvain.best_partition(network)
 ```
 
 ```{python}
@@ -122,6 +125,15 @@ print("# communities ab:", len(communities_ab))
 communities_av = getCommunities(G_av)
 print("# communities av:", len(communities_av))
 
+```
+
+```{python}
+# get communities with louvein
+partition = getCommunitiesLouvein(G_bt)
+```
+
+```{python}
+len(partition)
 ```
 
 ### bt examples
@@ -215,6 +227,7 @@ def plotNetworkNew(graph, fileName):
 ```
 
 ```{python}
+set_node_community(G_bt, communities_bt)
 plotNetworkWithExistingPos(G_bt, 'pos.txt', figsize=(50,50))
 ```
 
@@ -248,4 +261,20 @@ plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2])), 'pos.txt', nod
 
 ```{python}
 plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2,3])), 'pos.txt', node_size=80, figsize=(10,10))
+```
+
+```{python}
+# plot partitions generated with louvein
+
+# color the nodes according to their partition
+#plt.figure(figsize=(50,50))
+#cmap = cm.get_cmap('viridis', max(partition.values()) + 1)
+#nx.draw_networkx_nodes(G_bt, pos, partition.keys(), node_size=40,
+                       cmap=cmap, node_color=list(partition.values()))
+#nx.draw_networkx_edges(G_bt, pos, alpha=0.5)
+#plt.show()
+```
+
+```{python}
+# plotNetworkWithExistingPos(G_bt.subgraph(partition), 'pos.txt', node_size=80, figsize=(50,50))
 ```
