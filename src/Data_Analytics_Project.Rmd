@@ -129,11 +129,16 @@ print("# communities av:", len(communities_av))
 
 ```{python}
 # get communities with louvein
-partition = getCommunitiesLouvein(G_bt)
+partition = getCommunitiesLouvein(G_ab)
 ```
 
 ```{python}
-len(partition)
+print(len(partition))
+partition_df = pd.DataFrame(partition.items(), columns=['_id', 'community'])
+
+grouped_df = partition_df.groupby('community').count()
+print(len(grouped_df))
+grouped_df.sort_values('_id').loc[grouped_df['_id'] >= 5]
 ```
 
 ### bt examples
@@ -142,26 +147,14 @@ len(partition)
 # products in a community
 
 communities_bt_list =[list(x) for x in communities_bt]
-community_bt_1 = communities_bt_list[0]
-community_bt_1
-print(data.loc[data['_id'].isin(community_bt_1)])
-data.loc[data['_id'].isin(community_bt_1)].groupby('category').count()
-# print(len(data.loc[data['category']=='musical-instruments']))
+community_bt_x = communities_bt_list[3]
+community_bt_x
+print(data.loc[data['_id'].isin(community_bt_x)].groupby('category').count())
 
 ```
 
 ```{python}
-community_bt_2 = communities_bt_list[1]
-community_bt_2
-data.loc[data['_id'].isin(community_bt_2)].groupby('category').count()
-data.loc[data['_id'].isin(community_bt_2)]
-```
-
-```{python}
-community_bt_3 = communities_bt_list[6]
-community_bt_3
-data.loc[data['_id'].isin(community_bt_3)].groupby('category').count()
-data.loc[data['_id'].isin(community_bt_3)]
+data.loc[data['_id'].isin(community_bt_x)]
 ```
 
 ### also viewed examples
@@ -173,6 +166,61 @@ community_av_1 = communities_av_list[4]
 community_av_1
 print(data.loc[data['_id'].isin(community_av_1)].groupby('category').count())
 data.loc[data['_id'].isin(community_av_1)]
+```
+
+### predominant category for each community
+
+```{python}
+communities_bt = [list(x) for x in getCommunities(G_bt)]
+
+
+```
+
+```{python}
+def getDominantCategory(categories, threshold):
+    tot = sum(categories)
+    max_val = threshold*tot
+    max_cat = None
+    for key, value in categories.items():
+        if value >= max_val:
+            max_val = value
+            max_cat = key
+    return max_cat 
+
+def getTitlesFromIDs(ids):
+    return data.loc[data['_id'].isin(ids)]['title']
+```
+
+```{python}
+#print(communities_bt)
+communities_bt_df = []
+#pd.DataFrame(columns=["community", "category"])
+for community in communities_bt:
+    categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
+    category = getDominantCategory(categories, 0.75)
+    communities_bt_df.append({"community": community,"category": category})
+communities_bt_df = pd.DataFrame(communities_bt_df, columns=['community', 'category'])
+
+```
+
+```{python}
+communities_bt_df.loc[communities_bt_df['category'] == 'videogames']
+```
+
+```{python}
+print(getTitlesFromIDs(communities_bt_df.iloc[4]['community']).to_string())
+print("___________")
+print(getTitlesFromIDs(communities_bt_df.iloc[10]['community']).to_string())
+print("___________")
+print(getTitlesFromIDs(communities_bt_df.iloc[33]['community']).to_string())
+
+```
+
+### Most common words (title) for each community
+Important where category==None
+
+```{python}
+
 ```
 
 ## Plot
@@ -277,4 +325,24 @@ plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2,3])), 'pos.txt', n
 
 ```{python}
 # plotNetworkWithExistingPos(G_bt.subgraph(partition), 'pos.txt', node_size=80, figsize=(50,50))
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
+
 ```
