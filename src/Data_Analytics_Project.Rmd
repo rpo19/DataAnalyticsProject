@@ -12,6 +12,8 @@ jupyter:
     name: python3
 ---
 
+## Imports
+
 ```{python}
 import pandas as pd
 import nltk
@@ -30,12 +32,15 @@ from community import generate_dendrogram, community_louvain
 from networkx.algorithms.community import greedy_modularity_communities
 ```
 
+## Data importation
+
 ```{python}
 data = pd.read_json('../data/products.json', lines=True)
 data.head(3)
 ```
 
 ```{python}
+# clean numeric values
 def cleanProducts():
     data['price'] = data['price'].apply(lambda dictValue : float(list(dictValue.values())[0]) if dictValue != None else float(0))
     data['avg_rating'] = data['avg_rating'].apply(lambda dictValue : float(list(dictValue.values())[0]) if dictValue != None else float(0))
@@ -49,42 +54,36 @@ data.head(3)
 ```
 
 ```{python}
+# show categories
 categories = data['category'].value_counts()
 print("number of categories: {}".format(len(categories)))
 print("Categories:")
 print(categories)
 ```
 
-```{python}
-cytoData = pd.DataFrame(data, columns=["_id", "title", "category", "price", "avg_rating", "reviews_number", "questions_number"])
-```
-
-```{python}
-cytoData['title'] = cytoData['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
-cytoData
-```
-
-```{python}
-cytoData.to_csv("./cytoProducts.csv", sep="\t", index=False)
-```
-
-```{python}
-
-```
-
 # Network
 
 
-## Creation
+## Nodes
 
 ```{python}
-# NETWORK
-#edge_list = pd.DataFrame(columns=['from','to'])
+# export nodes for cytoscape
+data['title'] = data['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
+data.to_csv("./cytoProducts.csv",columns=["_id", "title", "category", "price", "avg_rating", "reviews_number", "questions_number"], sep="\t", index=False)
+```
+
+## Edges
+
+```{python}
+def filterEdges(edges, weight):
+    return edges.loc[edges['weight'] in weight]
+```
+
+```{python}
+# create complete list of edges
 edges = []
 for i, row in data.iterrows():
     for subrow in row['bought_together']:
-        #print(row['_id'], ' ', subrow)
-        #edge_list.append({'from': row['_id'], 'to': subrow}, ignore_index = True)
         ft = {'from': row['_id'], 'to': subrow, 'weight': 3}
         edges.append(ft)
     for subrow in row['also_bought']:
@@ -93,55 +92,59 @@ for i, row in data.iterrows():
     for subrow in row['also_viewed']:
         ft = {'from': row['_id'], 'to': subrow, 'weight': 1}
         edges.append(ft)
-    #if i > 250:
-    #       break
+
 edges = pd.DataFrame(edges)
+# keep a copy the complete list... maybe it will be useful in future
+all_edges = pd.DataFrame(edges)
+
 nodes = data['_id']
 print("# edges:", len(edges))
 print("# nodes:", len(nodes))
 ```
 
 ```{python}
+# remove edges with not available products
 for i, edge in edges.iterrows():
     if edge['to'] in data['_id'].values:
         continue
     else:
         edges = edges.drop(i)
+
+print("# edges:", len(edges))
 ```
 
 ```{python}
-cytoEdges = pd.read_csv('cytoEdges.csv', sep="\t")
-cytoEdges
+# remove also_viewed and merge also_bought with bought_together
+edges = all_edges.loc[all_edges['weight'] != 1][['from','to']]
+print("# edges:", len(edges))
+edges
 ```
 
 ```{python}
-#edges_new.values
-cytoEdgesList = list({tuple(sorted(item)) for item in cytoEdges.values})
-cytoEdges = pd.DataFrame.from_records(cytoEdgesList, columns=['from', 'to'])
-cytoEdges
+# remove symmetries
+edges = pd.DataFrame.from_records(list({tuple(sorted(item)) for item in edges.values}), columns=['from', 'to'])
+edges = edges.drop_duplicates(subset=["from", "to"])
+
+print("# edges:", len(edges))
 ```
 
 ```{python}
-cytoEdges = cytoEdges.drop_duplicates(subset=["from", "to"])
-cytoEdges.to_csv("./cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
+# export edges for cytoscape
+edges.to_csv("./cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
 ```
 
-```{python}
-def filterEdges(edges, weight):
-    return edges.loc[edges['weight']==weight]
-    
-```
+## Create a network for each relation (OLD)
 
 ```{python}
 # network for bought_together
-edges_bt = filterEdges(edges, 3)
+edges_bt = filterEdges(all_edges, 3)
 G_bt = nx.from_pandas_edgelist(edges_bt, source='from', target='to')
 print("### bought_together ###")
 print("# nodes:", len(nodes))
 print("# edges:", len(edges_bt))
 print()
 # network for also_bought
-edges_ab = filterEdges(edges, 2)
+edges_ab = filterEdges(all_edges, 2)
 G_ab = nx.from_pandas_edgelist(edges_ab, source='from', target='to')
 print("### also_bought ###")
 print("# nodes:", len(nodes))
@@ -149,7 +152,7 @@ print("# edges:", len(edges_ab))
 print()
 
 # network for also_viewed
-edges_av = filterEdges(edges, 1)
+edges_av = filterEdges(all_edges, 1)
 G_av = nx.from_pandas_edgelist(edges_av, source='from', target='to')
 print("### also_viewed ###")
 print("# nodes:", len(nodes))
@@ -161,6 +164,9 @@ print()
 
 ## Communities
 
+
+### Utils
+
 ```{python}
 # communities detection
 def getCommunities(network):
@@ -168,7 +174,22 @@ def getCommunities(network):
     
 def getCommunitiesLouvein(network):
     return community_louvain.best_partition(network)
+
+def getDominantCategory(categories, threshold):
+    tot = sum(categories)
+    max_val = threshold*tot
+    max_cat = None
+    for key, value in categories.items():
+        if value >= max_val:
+            max_val = value
+            max_cat = key
+    return max_cat 
+
+def getTitlesFromIDs(ids):
+    return data.loc[data['_id'].isin(ids)]['title']
 ```
+
+### Single relations (OLD)
 
 ```{python}
 communities_bt = getCommunities(G_bt)
@@ -196,7 +217,7 @@ print(len(grouped_df))
 grouped_df.sort_values('_id').loc[grouped_df['_id'] >= 5]
 ```
 
-### bt examples
+#### bt examples
 
 ```{python}
 # products in a community
@@ -212,7 +233,7 @@ print(data.loc[data['_id'].isin(community_bt_x)].groupby('category').count())
 data.loc[data['_id'].isin(community_bt_x)]
 ```
 
-### also viewed examples
+#### also viewed examples
 
 ```{python}
 communities_av_list =[list(x) for x in communities_av]
@@ -223,27 +244,11 @@ print(data.loc[data['_id'].isin(community_av_1)].groupby('category').count())
 data.loc[data['_id'].isin(community_av_1)]
 ```
 
-### predominant category for each community
+#### predominant category for each community
 
 ```{python}
 communities_bt = [list(x) for x in getCommunities(G_bt)]
 
-
-```
-
-```{python}
-def getDominantCategory(categories, threshold):
-    tot = sum(categories)
-    max_val = threshold*tot
-    max_cat = None
-    for key, value in categories.items():
-        if value >= max_val:
-            max_val = value
-            max_cat = key
-    return max_cat 
-
-def getTitlesFromIDs(ids):
-    return data.loc[data['_id'].isin(ids)]['title']
 ```
 
 ```{python}
