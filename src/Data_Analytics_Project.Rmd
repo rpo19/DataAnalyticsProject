@@ -36,10 +36,40 @@ data.head(3)
 ```
 
 ```{python}
+def cleanProducts():
+    data['price'] = data['price'].apply(lambda dictValue : float(list(dictValue.values())[0]) if dictValue != None else float(0))
+    data['avg_rating'] = data['avg_rating'].apply(lambda dictValue : float(list(dictValue.values())[0]) if dictValue != None else float(0))
+    data['reviews_number'] = data['reviews_number'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+    data['questions_number'] = data['questions_number'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+```
+
+```{python}
+cleanProducts()
+data.head(3)
+```
+
+```{python}
 categories = data['category'].value_counts()
 print("number of categories: {}".format(len(categories)))
 print("Categories:")
 print(categories)
+```
+
+```{python}
+cytoData = pd.DataFrame(data, columns=["_id", "title", "category", "price", "avg_rating", "reviews_number", "questions_number"])
+```
+
+```{python}
+cytoData['title'] = cytoData['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
+cytoData
+```
+
+```{python}
+cytoData.to_csv("./cytoProducts.csv", sep="\t", index=False)
+```
+
+```{python}
+
 ```
 
 # Network
@@ -69,6 +99,31 @@ edges = pd.DataFrame(edges)
 nodes = data['_id']
 print("# edges:", len(edges))
 print("# nodes:", len(nodes))
+```
+
+```{python}
+for i, edge in edges.iterrows():
+    if edge['to'] in data['_id'].values:
+        continue
+    else:
+        edges = edges.drop(i)
+```
+
+```{python}
+cytoEdges = pd.read_csv('cytoEdges.csv', sep="\t")
+cytoEdges
+```
+
+```{python}
+#edges_new.values
+cytoEdgesList = list({tuple(sorted(item)) for item in cytoEdges.values})
+cytoEdges = pd.DataFrame.from_records(cytoEdgesList, columns=['from', 'to'])
+cytoEdges
+```
+
+```{python}
+cytoEdges = cytoEdges.drop_duplicates(subset=["from", "to"])
+cytoEdges.to_csv("./cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
 ```
 
 ```{python}
