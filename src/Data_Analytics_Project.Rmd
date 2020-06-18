@@ -15,6 +15,8 @@ jupyter:
 ## Imports
 
 ```{python}
+# !pip install --upgrade -r requirements.txt
+
 import pandas as pd
 import nltk
 import operator
@@ -60,70 +62,57 @@ data.head(3)
 ## Nodes
 
 ```{python}
-# export nodes for cytoscape
-data['title'] = data['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
-data.to_csv("./cytoProducts.csv",columns=["_id", "title", "category", "price", "avg_rating", "reviews_number", "questions_number"], sep="\t", index=False)
-```
-
-## Edges
-
-```{python}
 def filterEdges(edges, weight):
     return edges.loc[edges['weight'] in weight]
-```
 
-```{python}
-# create complete list of edges
-edges = []
-for i, row in data.iterrows():
-    for subrow in row['bought_together']:
-        ft = {'from': row['_id'], 'to': subrow, 'weight': 3}
-        edges.append(ft)
-    for subrow in row['also_bought']:
-        ft = {'from': row['_id'], 'to': subrow, 'weight': 2}
-        edges.append(ft)
-    for subrow in row['also_viewed']:
-        ft = {'from': row['_id'], 'to': subrow, 'weight': 1}
-        edges.append(ft)
+def csvCreate():    
+    # export nodes for cytoscape
+    data['title'] = data['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
+    data.to_csv("../networkData/cytoProducts.csv",columns=["_id", "title", "category", "price", "avg_rating", "reviews_number", "questions_number"], sep="\t", index=False)
+    
+    # create complete list of edges
+    edges = []
+    for i, row in data.iterrows():
+        for subrow in row['bought_together']:
+            ft = {'from': row['_id'], 'to': subrow, 'weight': 3}
+            edges.append(ft)
+        for subrow in row['also_bought']:
+            ft = {'from': row['_id'], 'to': subrow, 'weight': 2}
+            edges.append(ft)
+        for subrow in row['also_viewed']:
+            ft = {'from': row['_id'], 'to': subrow, 'weight': 1}
+            edges.append(ft)
 
-edges = pd.DataFrame(edges)
-# keep a copy the complete list... maybe it will be useful in future
-all_edges = pd.DataFrame(edges)
+    edges = pd.DataFrame(edges)
+    # keep a copy the complete list... maybe it will be useful in future
+    all_edges = pd.DataFrame(edges)
 
-nodes = data['_id']
-print("# edges:", len(edges))
-print("# nodes:", len(nodes))
-```
+    nodes = data['_id']
+    print("# edges:", len(edges))
+    print("# nodes:", len(nodes))
+    
+    # remove edges with not available products
+    for i, edge in edges.iterrows():
+        if edge['to'] in data['_id'].values:
+            continue
+        else:
+            edges = edges.drop(i)
 
-```{python}
-# remove edges with not available products
-for i, edge in edges.iterrows():
-    if edge['to'] in data['_id'].values:
-        continue
-    else:
-        edges = edges.drop(i)
+    print("# edges:", len(edges))
+    
+    # remove also_viewed and merge also_bought with bought_together
+    edges = all_edges.loc[all_edges['weight'] != 1][['from','to']]
+    print("# edges:", len(edges))
+    edges
+    
+    # remove symmetries
+    edges = pd.DataFrame.from_records(list({tuple(sorted(item)) for item in edges.values}), columns=['from', 'to'])
+    edges = edges.drop_duplicates(subset=["from", "to"])
 
-print("# edges:", len(edges))
-```
-
-```{python}
-# remove also_viewed and merge also_bought with bought_together
-edges = all_edges.loc[all_edges['weight'] != 1][['from','to']]
-print("# edges:", len(edges))
-edges
-```
-
-```{python}
-# remove symmetries
-edges = pd.DataFrame.from_records(list({tuple(sorted(item)) for item in edges.values}), columns=['from', 'to'])
-edges = edges.drop_duplicates(subset=["from", "to"])
-
-print("# edges:", len(edges))
-```
-
-```{python}
-# export edges for cytoscape
-edges.to_csv("./cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
+    print("# edges:", len(edges))
+    
+    # export edges for cytoscape
+    edges.to_csv("../networkData/cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
 ```
 
 # Network analysis
@@ -132,7 +121,13 @@ edges.to_csv("./cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
 ## Create full network
 
 ```{python}
-edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
+for i in range(1,3):
+    try:
+        data = pd.read_csv('../networkData/cytoProducts.csv', sep='\t')
+        edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
+        break
+    except:
+        csvCreate()
 edges
 ```
 
