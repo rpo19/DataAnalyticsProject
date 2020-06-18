@@ -27,6 +27,7 @@ from collections import Counter
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import seaborn as sns
+import numpy as np
 
 import pickle
 # import igraph as ig
@@ -280,6 +281,45 @@ prova = data.loc[data['_id'].isin(communities[0])].groupby('category').count()['
 top = 3
 
 sum(prova.sort_values(ascending=False).head(top))+sum(prova.sort_values(ascending=False).iloc[top:len(prova)])
+
+```
+
+## Bridges
+
+```{python}
+bridges = list(nx.bridges(full_graph))
+```
+
+```{python}
+bridges_betweenness = nx.edge_betweenness_centrality(full_graph)
+```
+
+```{python}
+bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to', 'edge_betweenness'])
+for edge in bridges:
+    cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
+    cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
+    if cat_from != cat_to:
+        bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
+                                          'cat_to': cat_to, 'edge_betweenness': bridges_betweenness[edge]}, ignore_index=True)
+bridges_cat
+```
+
+```{python}
+bridges_cat.to_csv('./bridges.csv',sep="\t", index=False)
+```
+
+```{python}
+bridges_cat = pd.read_csv('./bridges.csv', sep='\t')
+```
+
+```{python}
+cat_in_bridges = bridges_cat[['cat_from','cat_to']].drop_duplicates().values
+bridges_stats = pd.DataFrame()
+for cat in cat_in_bridges:
+    filtered_bridges = bridges_cat.loc[(bridges_cat['cat_from']==cat[0]) & (bridges_cat['cat_to']==cat[1])]
+    bridges_stats = bridges_stats.append(filtered_bridges.loc[filtered_bridges['edge_betweenness'] == max(filtered_bridges['edge_betweenness'])].head(1), ignore_index=True)
+bridges_stats
 
 ```
 
