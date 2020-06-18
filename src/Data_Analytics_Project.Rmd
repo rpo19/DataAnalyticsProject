@@ -16,11 +16,13 @@ jupyter:
 
 ```{python}
 # !pip install --upgrade -r requirements.txt
+```
 
+```{python}
 import pandas as pd
 import nltk
 import operator
-from nltk.tokenize import word_tokenize
+import nltk
 
 from collections import Counter
 # #%matplotlib notebook
@@ -272,8 +274,31 @@ for community in communities:
 ```
 
 ```{python}
+nltk.download('punkt')
+nltk.download('stopwords')
+#nltk.download('averaged_perceptron_tagger')
+#nltk.download('maxent_ne_chunker')
+#nltk.download('words')
+```
+
+```{python}
 #communities_stats['category'].count()
 #communities_stats.loc[communities_stats['dominant_category'].isnull()].sort_values('cardinality', ascending=False)['categories_distribution'].values
+#type(communities_stats.iloc[1])
+#communities_stats
+stop_words = nltk.corpus.stopwords.words('italian') + nltk.corpus.stopwords.words('english')
+
+def processMergedTitles(merged_titles):
+    ret = nltk.tokenize.word_tokenize(merged_titles)
+    #ret = nltk.chunk.ne_chunk(nltk.pos_tag(ret))
+    ret = [word for word in ret if len(word)>2 and word.lower() not in stop_words]
+    ret = Counter(ret)
+    return ret.most_common(10)
+
+for i, row in communities_stats.iterrows():
+    merged_titles = " ".join([data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in row["community"]])
+    #print([product_id for product_id in row["community"]])
+    row["top_words"]=processMergedTitles(merged_titles)
 ```
 
 ```{python}
