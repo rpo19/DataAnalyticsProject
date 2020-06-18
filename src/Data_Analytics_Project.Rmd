@@ -17,6 +17,7 @@ jupyter:
 ```{python}
 import pandas as pd
 import nltk
+import operator
 from nltk.tokenize import word_tokenize
 
 from collections import Counter
@@ -51,14 +52,6 @@ def cleanProducts():
 ```{python}
 cleanProducts()
 data.head(3)
-```
-
-```{python}
-# show categories
-categories = data['category'].value_counts()
-print("number of categories: {}".format(len(categories)))
-print("Categories:")
-print(categories)
 ```
 
 # Network
@@ -131,6 +124,69 @@ print("# edges:", len(edges))
 ```{python}
 # export edges for cytoscape
 edges.to_csv("./cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
+```
+
+# Network analysis
+
+
+## Create full network
+
+```{python}
+edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
+edges
+```
+
+```{python}
+full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
+```
+
+## Filter products by categories
+
+```{python}
+categories = data['category'].value_counts()
+print("number of categories: {}".format(len(categories)))
+print(categories)
+categories_dict = categories.to_dict()
+categories_lbl = list(categories.keys())
+```
+
+## Create subgraph  by category
+
+```{python}
+products_by_cat = data.loc[data['category'] == 'musical-instruments']['_id'].values
+subgraph_cat = full_graph.subgraph(products_by_cat)
+```
+
+## Compute centrality
+
+```{python}
+degree_centrality = nx.degree_centrality(subgraph_cat)
+degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
+degree_centrality
+```
+
+```{python}
+degrees_dict = dict(subgraph_cat.degree)
+degrees_dict = dict(sorted(degrees_dict.items(), key=operator.itemgetter(1),reverse=True))
+degrees_dict
+```
+
+```{python}
+betweenness_centrality = nx.betweenness_centrality(subgraph_cat)
+betweenness_centrality = dict(sorted(betweenness_centrality.items(), key=operator.itemgetter(1),reverse=True))
+betweenness_centrality
+```
+
+```{python}
+closeness_centrality = nx.closeness_centrality(subgraph_cat)
+closeness_centrality = dict(sorted(closeness_centrality.items(), key=operator.itemgetter(1),reverse=True))
+closeness_centrality
+```
+
+```{python}
+eigenvector_centrality = nx.eigenvector_centrality(subgraph_cat, max_iter=1000)
+eigenvector_centrality = dict(sorted(eigenvector_centrality.items(), key=operator.itemgetter(1),reverse=True))
+eigenvector_centrality
 ```
 
 ## Create a network for each relation (OLD)
