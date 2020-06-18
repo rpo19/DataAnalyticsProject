@@ -150,43 +150,142 @@ categories_dict = categories.to_dict()
 categories_lbl = list(categories.keys())
 ```
 
-## Create subgraph  by category
+## Example: centralities of a category
 
 ```{python}
 products_by_cat = data.loc[data['category'] == 'musical-instruments']['_id'].values
 subgraph_cat = full_graph.subgraph(products_by_cat)
-```
-
-## Compute centrality
-
-```{python}
 degree_centrality = nx.degree_centrality(subgraph_cat)
 degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
-degree_centrality
-```
-
-```{python}
 degrees_dict = dict(subgraph_cat.degree)
 degrees_dict = dict(sorted(degrees_dict.items(), key=operator.itemgetter(1),reverse=True))
-degrees_dict
-```
-
-```{python}
 betweenness_centrality = nx.betweenness_centrality(subgraph_cat)
 betweenness_centrality = dict(sorted(betweenness_centrality.items(), key=operator.itemgetter(1),reverse=True))
-betweenness_centrality
-```
-
-```{python}
 closeness_centrality = nx.closeness_centrality(subgraph_cat)
 closeness_centrality = dict(sorted(closeness_centrality.items(), key=operator.itemgetter(1),reverse=True))
-closeness_centrality
+eigenvector_centrality = nx.eigenvector_centrality(subgraph_cat, max_iter=1000)
+eigenvector_centrality = dict(sorted(eigenvector_centrality.items(), key=operator.itemgetter(1),reverse=True))
+```
+
+## Compute stats for each category
+
+```{python}
+def computeStats(data, graph):
+    subgraph = graph.subgraph(data)
+    # cardinality
+    cardinality = len(data)
+    # degree centrality
+    degree_centrality = nx.degree_centrality(subgraph)
+    degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
+    max_degree_id = list(degree_centrality.keys())[0]
+    # degree
+    degrees = dict(subgraph.degree)
+    degrees = dict(sorted(degrees.items(), key=operator.itemgetter(1),reverse=True))
+    max_degree = list(degrees.values())[0]
+    # TODO (maybe): most positive/negative products by sentiment
+    # TODO (maybe): reviews number
+    return cardinality, max_degree_id, max_degree
+
+          
 ```
 
 ```{python}
-eigenvector_centrality = nx.eigenvector_centrality(subgraph_cat, max_iter=1000)
-eigenvector_centrality = dict(sorted(eigenvector_centrality.items(), key=operator.itemgetter(1),reverse=True))
-eigenvector_centrality
+categories_stats = pd.DataFrame(columns = ['category','cardinality','max_degree_id', 'max_degree', 'most_positive_id'])
+
+for category in categories_lbl:
+    data_by_category = data.loc[data['category'] == category]['_id'].values
+    cardinality, max_degree_id, max_degree = computeStats(data_by_category, full_graph)
+    categories_stats = categories_stats.append({'category':category,'cardinality':cardinality, 'max_degree_id':max_degree_id,\
+                             'max_degree':max_degree}, ignore_index = True)
+    
+
+```
+
+```{python}
+categories_stats
+```
+
+## Communities detection
+
+
+### Utils
+
+```{python}
+# communities detection
+def getCommunities(graph):
+    return sorted(greedy_modularity_communities(graph), key=len, reverse=True)
+    
+def getCommunitiesLouvein(network):
+    return community_louvain.best_partition(network)
+
+def getCategoryStats(categories, threshold, top):  
+    categories = categories.sort_values(ascending=False)
+    tot = sum(categories)
+    max_val = threshold*tot
+    max_cat = None
+    #distrib = pd.DataFrame(columns = ['category','value'])
+    distrib = {}
+    for key, value in categories.items():
+        # dominant category
+        if value >= max_val:
+            max_val = value
+            max_cat = key
+        # categories distribution
+        if key in categories.head(top):
+            #distrib = distrib.append({'category':key, 'value': value}, ignore_index = True)
+            distrib[key] = value
+    
+    # categories distribution
+    others_value = sum(categories.iloc[top:len(categories)])
+    #distrib.append({'category': 'others', 'value': others_value}, ignore_index = True)
+    distrib['others'] = others_value
+    return max_cat, distrib
+
+def getTitlesFromIDs(ids):
+    return data.loc[data['_id'].isin(ids)]['title']
+```
+
+### Communities analysis
+
+```{python}
+communities = getCommunities(full_graph)
+print("# communities:", len(communities))
+```
+
+```{python}
+communities = [list(x) for x in communities]
+```
+
+```{python}
+# cardinality distribution
+# top communities: centrality + bridges
+```
+
+```{python}
+communities_stats = pd.DataFrame(columns = ['community', 'dominant_category', 'cardinality', 'max_degree_id', 'max_degree', 'top_words'])
+for community in communities:
+    # dominant category
+    categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
+    dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
+    
+    # compute stats
+    cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
+    communities_stats = communities_stats.append({'community': community,'dominant_category': dominant_category,\
+                                                  'categories_distribution':categories_distribution,'cardinality':cardinality,\
+                                                  'max_degree_id':max_degree_id, 'max_degree':max_degree}, ignore_index = True)
+```
+
+```{python}
+#communities_stats['category'].count()
+#communities_stats.loc[communities_stats['dominant_category'].isnull()].sort_values('cardinality', ascending=False)['categories_distribution'].values
+```
+
+```{python}
+prova = data.loc[data['_id'].isin(communities[0])].groupby('category').count()['_id']
+top = 3
+
+sum(prova.sort_values(ascending=False).head(top))+sum(prova.sort_values(ascending=False).iloc[top:len(prova)])
+
 ```
 
 ## Create a network for each relation (OLD)
@@ -220,30 +319,6 @@ print()
 
 ## Communities
 
-
-### Utils
-
-```{python}
-# communities detection
-def getCommunities(network):
-    return sorted(greedy_modularity_communities(network), key=len, reverse=True)
-    
-def getCommunitiesLouvein(network):
-    return community_louvain.best_partition(network)
-
-def getDominantCategory(categories, threshold):
-    tot = sum(categories)
-    max_val = threshold*tot
-    max_cat = None
-    for key, value in categories.items():
-        if value >= max_val:
-            max_val = value
-            max_cat = key
-    return max_cat 
-
-def getTitlesFromIDs(ids):
-    return data.loc[data['_id'].isin(ids)]['title']
-```
 
 ### Single relations (OLD)
 
