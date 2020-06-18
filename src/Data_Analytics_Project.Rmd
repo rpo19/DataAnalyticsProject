@@ -23,6 +23,7 @@ import pandas as pd
 import nltk
 import operator
 import nltk
+import scipy
 
 from collections import Counter
 # #%matplotlib notebook
@@ -216,6 +217,14 @@ def getCommunities(graph):
 def getCommunitiesLouvein(network):
     return community_louvain.best_partition(network)
 
+def getCategoryStatZ(categories, threshold, top):
+    z = scipy.stats.zscore(categories)
+    max_cat = categories.keys()[z.argmax()] if z.max() > threshold else None
+    distrib = categories[z.argsort()[::-1]].head(top)
+    z[::-1].sort()
+    distrib = dict((ki,zi) for ki,zi in zip(distrib.keys(), z))
+    return max_cat, distrib
+
 def getCategoryStats(categories, threshold, top):  
     categories = categories.sort_values(ascending=False)
     tot = sum(categories)
@@ -264,7 +273,8 @@ communities_stats = pd.DataFrame(columns = ['community', 'dominant_category', 'c
 for community in communities:
     # dominant category
     categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
-    dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
+    #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
+    dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
     
     # compute stats
     cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
@@ -299,6 +309,14 @@ for i, row in communities_stats.iterrows():
     merged_titles = " ".join([data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in row["community"]])
     #print([product_id for product_id in row["community"]])
     row["top_words"]=processMergedTitles(merged_titles)
+```
+
+```{python}
+communities_stats.iloc[10:20][["top_words", "dominant_category"]]
+```
+
+```{python}
+communities_stats.loc[communities_stats["dominant_category"].isnull()]["categories_distribution"]
 ```
 
 ```{python}
