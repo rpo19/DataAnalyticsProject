@@ -233,11 +233,12 @@ def getCategoryStatZ(categories, threshold, top):
     except FloatingPointError:
         if len(categories) == 1:
             max_cat = categories.keys()[0]
-            distrib = dict(categories/sum(categories))
+            # distrib = 1, zscore = 0
+            distrib = {max_cat: (np.float64(1.0),np.float64(0.0))}
         else:
             # all categories same wheight
             max_cat = None
-            distrib = dict(categories/sum(categories))
+            distrib = dict(zip(categories.head(top).keys(), zip(categories.values/sum(categories), np.zeros(len(categories)))))
         return max_cat,distrib
 
     max_cat = categories.keys()[z.argmax()] if z.max() > threshold else None
