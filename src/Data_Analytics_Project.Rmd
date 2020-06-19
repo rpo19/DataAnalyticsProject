@@ -20,6 +20,7 @@ jupyter:
 
 ```{python}
 import pandas as pd
+import string
 import nltk
 import operator
 import nltk
@@ -37,6 +38,8 @@ import pickle
 import networkx as nx
 from community import generate_dendrogram, community_louvain
 from networkx.algorithms.community import greedy_modularity_communities
+
+from wordcloud import WordCloud
 ```
 
 ## Data importation
@@ -210,7 +213,54 @@ for category in categories_lbl:
 ```
 
 ```{python}
-categories_stats
+categories_stats.iloc[0]
+```
+
+```{python}
+[data.loc[data["_id"] == cat.iloc[0]["max_degree_id"]] for _,cat in categories_stats.iterrows()]
+```
+
+```{python}
+[data.loc[data["_id"] == cat["max_degree_id"]] for _,cat in categories_stats.iterrows()]
+```
+
+```{python}
+import statistics
+statistics.median(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
+#statistics.mean(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
+```
+
+```{python}
+np.seterr(all='ignore')
+sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
+sns.distplot(data["avg_rating"])
+```
+
+```{python}
+np.seterr(all='ignore')
+d = data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["questions_number"]
+sns.distplot(d)
+sns.distplot(data["questions_number"]) 
+```
+
+```{python}
+np.seterr(all='ignore')
+sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] \
+                                        for _,cat in categories_stats.iterrows()])]["price"])
+#sns.distplot(d, kde=False)
+sns.distplot(data["price"])
+```
+
+```{python}
+data
+```
+
+```{python}
+print(type(categories_stats))
+for _,row in categories_stats.iterrows():
+    print(row)
+    print(row["category"])
+    break
 ```
 
 ## Communities detection
@@ -332,22 +382,201 @@ nltk.download('stopwords')
 #type(communities_stats.iloc[1])
 #communities_stats
 stop_words = nltk.corpus.stopwords.words('italian') + nltk.corpus.stopwords.words('english')
+punctuation = string.punctuation + "-"
+
+def flatten(listoflists):
+    return [item for list in listoflists for item in list]
+
+import spacy
+nlp = spacy.load("it_core_news_sm")
+def processTitlesSpacy(titles):
+    ret = titles.apply(lambda x: [ent.text for ent in nlp(x).ents])
+    ret = Counter(flatten(ret))
+    ret = dict(ret.most_common(50))
+    return ret
+
+def processTitles(titles):
+    ret = titles.apply(nltk.tokenize.word_tokenize)
+    
+    ret = ret.apply(lambda x: [word for word in x if len(word)>2 and \
+                               word.lower() not in punctuation])
+    #ret = ret.apply(lambda x: [ word.replace(',', '') for word in x])
+    ret = ret.apply(nltk.pos_tag)
+    ret = ret.apply(nltk.ne_chunk)
+    ret = ret.apply(lambda x : [w[0] if isinstance(w, tuple) else " ".join(t[0] for t in w) for w in x])
+    ret = ret.apply(lambda x: [word.lower() for word in x if len(word)>2 and word.lower() not in stop_words])
+    ret = Counter(flatten(ret))
+    ret = dict(ret.most_common(50))
+    return ret
 
 def processMergedTitles(merged_titles):
     ret = nltk.tokenize.word_tokenize(merged_titles)
     #ret = nltk.chunk.ne_chunk(nltk.pos_tag(ret))
     ret = [word for word in ret if len(word)>2 and word.lower() not in stop_words]
     ret = Counter(ret)
-    return ret.most_common(10)
-
-for i, row in communities_stats.iterrows():
-    merged_titles = " ".join([data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in row["community"]])
-    #print([product_id for product_id in row["community"]])
-    row["top_words"]=processMergedTitles(merged_titles)
+    return dict(ret.most_common(50))
 ```
 
 ```{python}
-communities_stats.iloc[10:20][["top_words", "dominant_category"]]
+"and io" in stop_words
+```
+
+```{python}
+method = "spacy"
+if method == "ne":
+    for i, row in communities_stats.iterrows():
+        titles = data.loc[data['_id'].isin(row["community"])]["title"]
+        #print([product_id for product_id in row["community"]])
+        row["top_words"]=processTitles(titles)
+elif method == "spacy":
+    for i, row in communities_stats.iterrows():
+        titles = data.loc[data['_id'].isin(row["community"])]["title"]
+        #print([product_id for product_id in row["community"]])
+        row["top_words"]=processTitlesSpacy(titles)
+else:
+    for i, row in communities_stats.iterrows():
+        merged_titles = " ".join(data.loc[data['_id'].isin(row["community"])]["title"])
+        #print([product_id for product_id in row["community"]])
+        row["top_words"]=processMergedTitles(merged_titles)
+```
+
+```{python}
+communities_stats["top_words"]
+```
+
+```{python}
+titles = data.loc[data['_id'].isin(communities_stats.iloc[0]["community"])]["title"]
+titles
+p = processTitles(titles)
+p
+```
+
+```{python}
+d
+```
+
+```{python}
+nltk.ne_chunk(nltk.pos_tag("il più grosso è Christian Bernasconi".split(" ")))
+```
+
+```{python}
+import spacy
+
+nlp = spacy.load("it_core_news_sm")
+#[ent for ent in nlp("Mary Poppins").ents]
+doc = nlp("Playstation 4")
+
+for ent in doc.ents:
+    print(ent.text, ent.start_char, ent.end_char, ent.label_)
+```
+
+```{python}
+nee = titles.apply(lambda x: [ent.text for ent in nlp(x).ents])
+
+```
+
+```{python}
+c = Counter(flatten(nee))
+```
+
+```{python}
+c.most_common(20)
+```
+
+```{python}
+titles
+```
+
+```{python}
+str = "ciao mi chiamo Capitan Harlock"
+a = nltk.tokenize.word_tokenize(str)
+a = nltk.pos_tag(a)
+a = nltk.ne_chunk(a)
+[ w[0] if isinstance(w, tuple) else " ".join(t[0] for t in w) for w in a]
+```
+
+```{python}
+" ".join([w for w,_ in f.leaves()])
+```
+
+```{python}
+merged_titles = " ".join([data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in communities_stats.iloc[53]["community"]])
+r = processMergedTitles(merged_titles)
+r
+```
+
+```{python}
+print(type(communities_stats.loc[communities_stats["id"] == 1].iloc[0]["top_words"]))
+print(type(communities_stats.loc[250]["top_words"]))
+```
+
+```{python}
+[ww for wc in communities_stats["top_words"].values for ww in wc if len(ww.split(" "))>1]
+#print([ww for ww in c if len(ww.split(" "))>1])
+```
+
+```{python}
+communities_stats.loc[communities_stats["dominant_category"].isnull()]
+```
+
+```{python}
+c = communities_stats.iloc[71]
+print(c)
+wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_words"])
+plt.figure(figsize = (10, 8), facecolor = None) 
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+```
+
+```{python}
+communities_stats.iloc[10]
+```
+
+```{python}
+comm = communities_stats.iloc[0]
+idprice = [data.loc[data['_id'].isin(comm["community"])].iloc[0][["_id","price"]] for product_id ]
+idprice
+```
+
+```{python}
+comm = communities_stats.iloc[8]
+print(comm[["dominant_category", "top_words", "categories_distribution"]])
+d = data.loc[data['_id'].isin(comm["community"])]
+z = scipy.stats.zscore(d["price"])
+dc = d.copy()
+dc["zscore"] = z
+c = z.argsort()[::-1]
+dc.iloc[c]
+```
+
+```{python}
+comm = communities_stats.iloc[3]
+print(comm)
+data.loc[data['_id'] == comm["max_degree_id"]]
+```
+
+```{python}
+[data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in communities_stats.iloc[54]["community"]]
+```
+
+```{python}
+print(r)
+```
+
+```{python}
+print(dict(r.most_common(10)))
+print(len(r))
+```
+
+```{python}
+wordcloud = WordCloud().generate_from_frequencies(dict(r.most_common(50)))
+plt.figure(figsize = (10, 8), facecolor = None) 
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+```
+
+```{python}
+communities_stats.iloc[0:20][["top_words", "dominant_category"]]
 ```
 
 ```{python}
@@ -360,6 +589,26 @@ top = 3
 
 sum(prova.sort_values(ascending=False).head(top))+sum(prova.sort_values(ascending=False).iloc[top:len(prova)])
 
+```
+
+```{python}
+np.seterr(all='ignore')
+sns.distplot(data.loc[data["_id"].isin([community["max_degree_id"] \
+                           for _,community in communities_stats.iterrows()])]["avg_rating"])
+#sns.distplot(d, kde=False)
+sns.distplot(data["avg_rating"])
+```
+
+```{python}
+np.seterr(all='ignore')
+sns.distplot(data.loc[data["_id"].isin([community["max_degree_id"] \
+                           for _,community in communities_stats.iterrows()])]["price"])
+#sns.distplot(d, kde=False)
+sns.distplot(data["price"])
+```
+
+```{python}
+data
 ```
 
 ## Bridges
