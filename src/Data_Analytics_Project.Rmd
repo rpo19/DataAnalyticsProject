@@ -226,15 +226,25 @@ def getCommunities(graph):
 def getCommunitiesLouvein(network):
     return community_louvain.best_partition(network)
 
+np.seterr(all='raise')
 def getCategoryStatZ(categories, threshold, top):
-    z = scipy.stats.zscore(categories)
+    try:
+        z = scipy.stats.zscore(categories)
+    except FloatingPointError:
+        if len(categories) == 1:
+            max_cat = categories.keys()[0]
+            distrib = dict(categories/sum(categories))
+        else:
+            # all categories same wheight
+            max_cat = None
+            distrib = dict(categories/sum(categories))
+        return max_cat,distrib
+
     max_cat = categories.keys()[z.argmax()] if z.max() > threshold else None
     distrib = categories[z.argsort()[::-1]].head(top)
-    others_value = sum(categories.iloc[top:len(categories)])
-    # z[::-1].sort()
-    # distrib = dict((ki,zi) for ki,zi in zip(distrib.keys(), z))
-    distrib = dict((ki,zi) for ki,zi in zip(distrib.keys(), distrib.values))
-    distrib['others'] = others_value
+    sum_values = sum(distrib.values)
+    z[::-1].sort()
+    distrib = dict((ki, (di, zi)) for ki,di,zi in zip(distrib.keys(), distrib.values/sum_values, z))
     return max_cat, distrib
 
 def getCategoryStats(categories, threshold, top):  
