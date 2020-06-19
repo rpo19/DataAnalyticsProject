@@ -221,8 +221,11 @@ def getCategoryStatZ(categories, threshold, top):
     z = scipy.stats.zscore(categories)
     max_cat = categories.keys()[z.argmax()] if z.max() > threshold else None
     distrib = categories[z.argsort()[::-1]].head(top)
-    z[::-1].sort()
-    distrib = dict((ki,zi) for ki,zi in zip(distrib.keys(), z))
+    others_value = sum(categories.iloc[top:len(categories)])
+    # z[::-1].sort()
+    # distrib = dict((ki,zi) for ki,zi in zip(distrib.keys(), z))
+    distrib = dict((ki,zi) for ki,zi in zip(distrib.keys(), distrib.values))
+    distrib['others'] = others_value
     return max_cat, distrib
 
 def getCategoryStats(categories, threshold, top):  
@@ -275,12 +278,12 @@ for community in communities:
     categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
     #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
     dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
-    
     # compute stats
     cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
     communities_stats = communities_stats.append({'community': community,'dominant_category': dominant_category,\
                                                   'categories_distribution':categories_distribution,'cardinality':cardinality,\
                                                   'max_degree_id':max_degree_id, 'max_degree':max_degree}, ignore_index = True)
+communities_stats
 ```
 
 ```{python}
