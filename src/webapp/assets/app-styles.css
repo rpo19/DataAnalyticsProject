@@ -1,0 +1,58 @@
+html,body {
+    margin: 0;
+    height: 100%;
+    font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.main {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    width: 300px;
+    height: 100%;
+}
+
+.sidebar-content {
+    text-align: center;
+}
+
+.logo-container{
+    padding: 20px;
+    margin-bottom: 20%;
+}
+
+.logo {
+    width: 150px;
+    height: 150px;
+}
+
+.zan-box-shadow {
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 4px 16px;
+}
+
+.btn-zan-big {
+    cursor: pointer;
+    width: 100%;
+    height: 50px;
+    color: rgba(0,0,0,0.87);
+    background: transparent;
+    font-size: 16px;
+    outline: none;
+    border: none;
+    transition: all 150ms ease-out;
+}
+.btn-zan-big:hover {
+    color: white;
+    background: #E2686D;
+}
+
