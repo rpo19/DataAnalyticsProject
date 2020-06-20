@@ -26,6 +26,9 @@ import operator
 import nltk
 import scipy
 
+from tqdm.notebook import tqdm
+tqdm.pandas()
+
 from collections import Counter
 # #%matplotlib notebook
 import matplotlib.pyplot as plt
@@ -220,8 +223,8 @@ statistics.median(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in c
 
 ```{python}
 np.seterr(all='ignore')
-sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
-sns.distplot(data["avg_rating"])
+#sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
+np.average(data["avg_rating"]*(data["reviews_number"]/np.average(data["reviews_number"])))
 ```
 
 ```{python}
@@ -408,31 +411,39 @@ def processTitles(titles):
     ret = dict(ret.most_common(50))
     return ret
 
-def processMergedTitles(merged_titles):
-    ret = nltk.tokenize.word_tokenize(merged_titles)
-    #ret = nltk.chunk.ne_chunk(nltk.pos_tag(ret))
-    ret = [word for word in ret if len(word)>2 and word.lower() not in stop_words]
-    ret = Counter(ret)
+def processTitlesSimple(titles):
+    ret = titles.apply(nltk.tokenize.word_tokenize)
+    ret = ret.apply(lambda x: [word.lower() for word in x if len(word)>2 and word.lower() \
+                               not in punctuation and word.lower() not in stop_words])
+    ret = Counter(flatten(ret))
     return dict(ret.most_common(50))
 ```
 
 ```{python}
-method = "spacy"
+method = "simple"
 if method == "ne":
-    for i, row in communities_stats.iterrows():
-        titles = data.loc[data['_id'].isin(row["community"])]["title"]
-        #print([product_id for product_id in row["community"]])
-        row["top_words"]=processTitles(titles)
+    processTitlesFun=processTitles
 elif method == "spacy":
-    for i, row in communities_stats.iterrows():
-        titles = data.loc[data['_id'].isin(row["community"])]["title"]
-        #print([product_id for product_id in row["community"]])
-        row["top_words"]=processTitlesSpacy(titles)
+    processTitlesFun=processTitlesSpacy
 else:
-    for i, row in communities_stats.iterrows():
-        merged_titles = " ".join(data.loc[data['_id'].isin(row["community"])]["title"])
-        #print([product_id for product_id in row["community"]])
-        row["top_words"]=processMergedTitles(merged_titles)
+    processTitlesFun=processTitlesSimple
+        
+communities_stats["top_words"] = communities_stats["community"].progress_apply(\
+                                        lambda x: processTitlesFun(data.loc[data['_id'].isin(x)]["title"]))
+```
+
+```{python}
+communities_stats["top_words"]
+```
+
+```{python}
+data.loc[data['_id'].isin(communities_stats.iloc[0]["community"])]["title"].values
+```
+
+```{python}
+from tqdm.notebook import tqdm
+tqdm.pandas()
+communities_stats.progress_apply(lambda x: x)
 ```
 
 ```{python}
