@@ -213,18 +213,6 @@ for category in categories_lbl:
 ```
 
 ```{python}
-categories_stats.iloc[0]
-```
-
-```{python}
-[data.loc[data["_id"] == cat.iloc[0]["max_degree_id"]] for _,cat in categories_stats.iterrows()]
-```
-
-```{python}
-[data.loc[data["_id"] == cat["max_degree_id"]] for _,cat in categories_stats.iterrows()]
-```
-
-```{python}
 import statistics
 statistics.median(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
 #statistics.mean(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
@@ -234,6 +222,17 @@ statistics.median(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in c
 np.seterr(all='ignore')
 sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
 sns.distplot(data["avg_rating"])
+```
+
+```{python}
+np.average(data["avg_rating"].values, weights=data["reviews_number"].values)
+#np.average(data["avg_rating"])
+```
+
+```{python}
+miniworld = data.loc[data["_id"].isin([cat["max_degree_id"] \
+                                      for _,cat in categories_stats.iterrows()])]
+np.average(miniworld["avg_rating"].values, weights = miniworld["reviews_number"].values)
 ```
 
 ```{python}
@@ -418,10 +417,6 @@ def processMergedTitles(merged_titles):
 ```
 
 ```{python}
-"and io" in stop_words
-```
-
-```{python}
 method = "spacy"
 if method == "ne":
     for i, row in communities_stats.iterrows():
@@ -520,7 +515,7 @@ communities_stats.loc[communities_stats["dominant_category"].isnull()]
 ```
 
 ```{python}
-c = communities_stats.iloc[71]
+c = communities_stats.iloc[15]
 print(c)
 wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_words"])
 plt.figure(figsize = (10, 8), facecolor = None) 
