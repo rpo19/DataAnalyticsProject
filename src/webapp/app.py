@@ -13,7 +13,7 @@ app.layout = html.Div(children=[
     html.Div(children=[
         html.Div(children=[
             html.Div(children=[
-                html.Img(src='/assets/logo-zann.png', className='logo'),
+                html.Img(src='/assets/logo.png', className='logo'),
             ], className="logo-container"),
             html.Button('Exploration', id='btnExpl', className='btn-zan-big'),
             html.Button('Network', id='btnNet', className='btn-zan-big'),
