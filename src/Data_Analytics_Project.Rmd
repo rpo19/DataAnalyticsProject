@@ -31,6 +31,7 @@ import random
 from random import randint
 from tqdm.notebook import tqdm
 tqdm.pandas()
+import statistics
 
 from collections import Counter
 # #%matplotlib notebook
@@ -148,6 +149,15 @@ edges
 
 ```{python}
 full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
+```
+
+```{python}
+connected_components = list(nx.connected_components(full_graph))
+connected_components 
+```
+
+```{python}
+[len(c) for c in sorted(connected_components, key=len, reverse=True)]
 ```
 
 ## Read/Create nodes
@@ -346,7 +356,7 @@ communities = [list(x) for x in communities]
 ```
 
 ```{python}
-communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id', 'max_degree', 'top_words'])
+communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id', 'max_degree', 'avg_clust', 'top_words'])
 for i, community in enumerate(communities):
     # dominant category
     categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
@@ -354,10 +364,18 @@ for i, community in enumerate(communities):
     dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
     # compute stats
     cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
+    avg_clust = nx.average_clustering(full_graph.subgraph(community))
     communities_stats = communities_stats.append({'id': i+1,'community': community,'dominant_category': dominant_category,\
                                                   'categories_distribution':categories_distribution,'cardinality':cardinality,\
-                                                  'max_degree_id':max_degree_id, 'max_degree':max_degree}, ignore_index = True)
+                                                  'max_degree_id':max_degree_id, 'max_degree':max_degree, 'avg_clust': avg_clust}, ignore_index = True)
 communities_stats
+```
+
+## Average clustering coefficient 
+
+```{python}
+
+np.average(communities_stats['avg_clust'].values, weights=communities_stats['cardinality'].values)
 ```
 
 ## Assign community to each product
