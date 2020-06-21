@@ -1,7 +1,8 @@
 html,body {
     margin: 0;
     height: 100%;
-    font-family: "Open Sans", "HelveticaNeue", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: 'Open Sans', sans-serif;
+    color: rgba(0,0,0,0.87);
 }
 
 .main {
@@ -23,7 +24,18 @@ html,body {
 }
 
 .sidebar-content {
+    display: flex;
+    flex-direction: column;
     text-align: center;
+    height: 100%;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    padding: 20px;
+    overflow: auto;
 }
 
 .logo-container{
@@ -35,12 +47,49 @@ html,body {
     width: 150px;
     height: 150px;
 }
+.logo-big {
+    width: 250px;
+    height: 250px;
+    animation: rotate 120s linear infinite;
+}
+
+.img-section {
+    width: 70px;
+    height: 70px;
+}
+
+.img-dataset {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 20px;
+    background-image: url('/assets/dataset.png');
+    background-size: contain;
+}
+.img-network {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 20px;
+    background-image: url('/assets/network.png');
+    background-size: contain;
+}
+
+.img-sentiment {
+    width: 70px;
+    height: 70px;
+    margin-bottom: 20px;
+    background-image: url('/assets/sentiment.png');
+    background-size: contain;
+}
 
 .zan-box-shadow {
     box-shadow: rgba(0, 0, 0, 0.12) 0px 4px 16px;
 }
 
 .btn-zan-big {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     width: 100%;
     height: 50px;
@@ -49,10 +98,111 @@ html,body {
     font-size: 16px;
     outline: none;
     border: none;
+    text-decoration: none;
     transition: all 150ms ease-out;
+    overflow: hidden;
 }
 .btn-zan-big:hover {
     color: white;
     background: #0093DD;
 }
+.btn-zan-big:hover .icon-button {
+    color: white;
+    transform: translate(0px);
+    transition: transform 150ms ease-out;
+}
+.icon-button {
+    position: absolute;
+    right: 20%;
+    color: transparent;
+    transform: translate(-20px, 20px);
+}
 
+.text-center {
+    text-align: center;
+}
+
+.title {
+    font-size: 32px;
+}
+
+.subtitle {
+    font-size: 24px;
+    color: #363636;
+}
+
+.caption {
+    font-size: 16px;
+    color: #363636;
+}
+
+.card-small {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 200px;
+    height: 200px;
+    border-radius: 6px;
+    margin-left: 20px;
+    margin-right: 20px;
+    color: rgba(0,0,0,0.87);
+    transition: box-shadow 150ms ease-out;
+}
+.card-small:hover {
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 10px 60px;
+}
+
+.card-small:hover .img-network {
+    background-image: url('/assets/network-hover.png');
+}
+
+.card-small:hover .img-dataset{
+    background-image: url('/assets/dataset-hover.png');
+}
+
+.card-small:hover .img-sentiment{
+    background-image: url('/assets/sentiment-hover.png');
+}
+
+
+.flex-row {
+    display: flex;
+    flex-direction: row;
+}
+
+.flex-column-center {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+}
+
+.text-decor-none {
+    text-decoration: none;
+}
+
+
+@media only screen and (max-width: 1024px) {
+    .sidebar {
+        display: none;
+    }
+}
+
+@media only screen and (max-width: 765px) {
+    .flex-row {
+        flex-direction: column;
+    }
+    .card-small {
+        margin-left: 0;
+        margin-right: 0;
+        margin-bottom: 40px;
+    }
+}
+
+@keyframes rotate {
+    to {
+      transform: rotate(360deg);
+    }
+}

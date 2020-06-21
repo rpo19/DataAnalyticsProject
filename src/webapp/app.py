@@ -2,42 +2,60 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+from pages.exploration import exploration_layout
+from pages.network import network_layout
+from pages.sentiment import sentiment_layout
+from pages.about import about_layout
 
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
-app = dash.Dash(__name__, external_stylesheets=['./app-styles.css'])
+app = dash.Dash(
+    __name__,
+    external_stylesheets=[
+        './app-styles.css',
+        'https://fonts.googleapis.com/icon?family=Material+Icons+Outlined|Material+Icons+Round',
+        'https://fonts.googleapis.com/css2?family=Open+Sans&display=swap'
+    ]
+)
 
 app.layout = html.Div(children=[
-    #html.H1(children='Hello Dash'),
-
+    dcc.Location(id='url', refresh=False),
     html.Div(children=[
         html.Div(children=[
             html.Div(children=[
                 html.Img(src='/assets/logo.png', className='logo'),
             ], className="logo-container"),
-            html.Button('Exploration', id='btnExpl', className='btn-zan-big'),
-            html.Button('Network', id='btnNet', className='btn-zan-big'),
-            html.Button('Sentiment', id='btnSent', className='btn-zan-big'),
+            dcc.Link(children=[
+                'Exploration',
+                html.I(children='call_made', className='material-icons-round icon-button')],
+                href='/exploration',className='btn-zan-big'),
+            dcc.Link(children=[
+                'Network',
+                html.I(children='call_made', className='material-icons-round icon-button')],
+                href='/network',className='btn-zan-big'),
+            dcc.Link(children=[
+                'Sentiment',
+                html.I(children='call_made', className='material-icons-round icon-button')],
+                href='/sentiment',className='btn-zan-big'),
+            dcc.Link(children=[
+                'About',
+                html.I(children='call_made', className='material-icons-round icon-button')],
+                href='/',className='btn-zan-big', style={'marginTop':'auto', 'marginBottom': '40px'}),
         ]     
         , className='sidebar-content'),
     ], className='sidebar zan-box-shadow'),
-    html.Div(children='''
-        content
-    ''', className='content'),
-
-    # dcc.Graph(
-    #     id='example-graph',
-    #     figure={
-    #         'data': [
-    #             {'x': [1, 2, 3], 'y': [4, 1, 2], 'type': 'bar', 'name': 'SF'},
-    #             {'x': [1, 2, 3], 'y': [2, 4, 5], 'type': 'bar', 'name': u'Montréal'},
-    #         ],
-    #         'layout': {
-    #             'title': 'Dash Data Visualization'
-    #         }
-    #     }
-    # )
+    html.Div(id='page-content', className='content')
 ], className='main')
+
+@app.callback(dash.dependencies.Output('page-content', 'children'),
+              [dash.dependencies.Input('url', 'pathname')])
+def display_page(pathname):
+    if pathname == '/exploration':
+        return exploration_layout
+    elif pathname == '/network':
+        return network_layout
+    elif pathname == '/sentiment':
+        return sentiment_layout
+    else:
+        return about_layout
 
 if __name__ == '__main__':
     app.run_server(debug=True)
