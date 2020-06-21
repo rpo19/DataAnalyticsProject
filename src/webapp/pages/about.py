@@ -5,7 +5,7 @@ import dash_html_components as html
 about_layout = [html.Div(children=[
     html.Img(src='/assets/logo.png', className='logo-big', style={'marginTop': 'auto', 'marginBottom': 'auto'}),
     html.Div(children='Network and Sentiment Anlysis on Amazon Dataset', className="text-center title", style={'marginTop': '24px'}),
-    html.Div(children='Data Analytics Project', className="text-center subtitle", style={'marginTop': '24px'}),
+    html.Div(children='Data Analytics Project', className="text-center subtitle", style={'marginTop': '24px', 'marginBottom': 'auto'}),
 
     html.Div(children=[
         dcc.Link(children=[
@@ -26,7 +26,7 @@ about_layout = [html.Div(children=[
                         html.Div(children='Sentiment Anlysis'),
                     ], className="zan-box-shadow card-small")],
                 href='/sentiment', className="text-decor-none", style={'marginRight': 'auto'}),
-    ], className="flex-row", style={'marginTop': '24px', 'marginBottom': '24px'}),
+    ], className="flex-row", id='about', style={'marginTop': '24px', 'marginBottom': '24px'}),
 
     html.Div(children='Authors: Christian Bernasconi - Gabriele Ferrario - Riccardo Pozzi - Marco Ripamonti', className="text-center caption", style={'marginTop': 'auto', 'marginBottom': '10px'}),
     html.Div(children='Date: 06/07/2020', className="text-center caption", style={'marginBottom': '10px'}),

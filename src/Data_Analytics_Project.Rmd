@@ -66,6 +66,10 @@ cleanProducts()
 data.head(3)
 ```
 
+```{python}
+
+```
+
 # Network
 
 
@@ -152,6 +156,10 @@ full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
 ```{python}
 data = pd.DataFrame(data.loc[data['_id'].isin(list(full_graph))])
 data
+```
+
+```{python}
+
 ```
 
 ## Filter products by categories
