@@ -8,3 +8,5 @@ seaborn==0.10.1
 networkx==2.4
 jupytext==1.4.2
 python-louvain==0.14dash==1.13.2
+dash==1.13.2
+dash-cytoscape==0.0.5
