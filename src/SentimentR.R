@@ -20,12 +20,12 @@ compute_sentix <- function(df, model) {
 model <- load.udpipe()
 
 # compute negative 
-dataReviews_NEG = read.csv("../data/dataReviews_NEG.csv", stringsAsFactors=FALSE, sep = '\t')  # read csv file 
+dataReviews_NEG = read.csv("../data/dataReviews_NEG.csv", stringsAsFactors=FALSE, sep = ',')  # read csv file 
 sentiment_NEG = compute_sentix(dataReviews_NEG, model)
-write.csv(sentiment_NEG, "../data/dataReviews_NEG_pol.csv", row.names=FALSE, sep = '\t')
+write.csv(sentiment_NEG, "../data/dataReviews_NEG_pol.csv", row.names=FALSE)
 
 # compute positive
-dataReviews_POS = read.csv("../data/dataReviews_POS.csv", stringsAsFactors=FALSE, sep = '\t')  # read csv file 
+dataReviews_POS = read.csv("../data/dataReviews_POS.csv", stringsAsFactors=FALSE, sep = ',')  # read csv file 
 sentiment_POS = compute_sentix(dataReviews_POS, model)
 write.csv(sentiment_POS, "../data/dataReviews_POS_pol.csv", row.names=FALSE)
 
