@@ -26,6 +26,7 @@ button {
     flex-shrink: 0;
     width: 300px;
     height: 100%;
+    z-index: 10;
 }
 
 .sidebar-content {
@@ -36,12 +37,16 @@ button {
 }
 
 .content {
+    position: relative;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
-    padding: 20px;
     overflow: scroll;
     overflow-x: hidden;
+}
+
+.p-20 {
+    padding: 20px;
 }
 
 .logo-container{
@@ -290,6 +295,67 @@ button {
 .card-rect:hover .popup{
     top: 180px;
     opacity: 1;
+}
+
+.network-container {
+    background: #fafafa
+}
+
+.network-title-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 10px;
+    border-radius: 6px;
+    background: white;
+    z-index: 10;
+}
+
+.network-stats-container {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 250px;
+    padding: 10px;
+    border-radius: 6px;
+    background: white;
+    z-index: 10;
+}
+
+.network-menu-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 250px;
+    height: 300px;
+    padding: 10px;
+    border-radius: 6px;
+    background: white;
+    z-index: 10;
+}
+
+.btn-small {
+    outline: none;
+    border: none;
+    background: white;
+    font-size: 16px;
+    border-radius: 6px;
+    padding: 5px;
+    transition: all 100ms ease-out;
+}
+
+.btn-small:hover {
+    cursor: pointer;
+    background: #C92F95;
+    color: white;
+}
+
+.mb-5 {
+    margin-bottom: 5px;
+}
+
+.mb-10 {
+    margin-bottom: 10px;
 }
 
 

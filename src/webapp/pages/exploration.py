@@ -137,5 +137,5 @@ exploration_layout = [html.Div(children=[
         dcc.Tab(label='Reviews', value='reviews'),
     ]),
     html.Div(id='tab-content', style={'paddingTop': '20px'})
-], className='flex-column')]
+], className='flex-column p-20')]
 

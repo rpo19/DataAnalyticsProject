@@ -112,26 +112,31 @@ def update_output(btnCat, btnRat, btnPrice, btnProd):
 
 @app.callback(
     dash.dependencies.Output('network-output', 'children'),
-    [dash.dependencies.Input('btn-net', 'n_clicks') ])
-def update_output(btnNet):
+    [dash.dependencies.Input('btn-reset', 'n_clicks') ])
+def update_output(btnReset):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    if 'btn-net' in changed_id:
+    if 'btn-reset' in changed_id:
         for row in graphData:
             if row['data']['shared_name'] == 'B07NVMYB7K':
                 row['classes'] = 'red'
-        for row in graphData:
-            if row['data']['shared_name'] == 'B07NVMYB7K':
-                print(row)
-
         return  cyto.Cytoscape(
             id='cytoscape',
             layout={'name': 'preset'},
             stylesheet=stylesheet,
-            style={'width': '100%', 'height': '400px'},
+            style={'width': '100%', 'height': '100%'},
             elements=graphData
         )
     else:
-        return
+        for row in graphData:
+            if row['data']['shared_name'] == 'B07NVMYB7K':
+                row['classes'] = 'red'
+        return  cyto.Cytoscape(
+            id='cytoscape',
+            layout={'name': 'preset'},
+            stylesheet=stylesheet,
+            style={'width': '100%', 'height': '100%'},
+            elements=graphData
+        )
 
 if __name__ == '__main__':
     app.run_server(debug=True)

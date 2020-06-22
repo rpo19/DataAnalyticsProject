@@ -30,4 +30,4 @@ about_layout = [html.Div(children=[
 
     html.Div(children='Authors: Christian Bernasconi - Gabriele Ferrario - Riccardo Pozzi - Marco Ripamonti', className="text-center caption", style={'marginTop': 'auto', 'marginBottom': '10px'}),
     html.Div(children='Date: 06/07/2020', className="text-center caption", style={'marginBottom': '10px'}),
-], className='flex-column-center')]
+], className='flex-column-center p-20')]
