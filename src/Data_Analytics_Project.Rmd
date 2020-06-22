@@ -25,7 +25,9 @@ import nltk
 import operator
 import nltk
 import scipy
+import json
 
+from random import randint
 from tqdm.notebook import tqdm
 tqdm.pandas()
 
@@ -64,10 +66,6 @@ def cleanProducts():
 ```{python}
 cleanProducts()
 data.head(3)
-```
-
-```{python}
-
 ```
 
 # Network
@@ -907,8 +905,116 @@ plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2,3])), 'pos.txt', n
 # plotNetworkWithExistingPos(G_bt.subgraph(partition), 'pos.txt', node_size=80, figsize=(50,50))
 ```
 
-```{python}
+## webApp functions
 
+```{python}
+data = pd.read_csv('../networkData/cytoProducts.csv', sep='\t')
+data
+```
+
+```{python}
+data = pd.read_json('../data/reviews.json', lines=True)
+data
+```
+
+```{python}
+cleanReviews(data)
+```
+
+```{python}
+verified = data.loc[data['verified'] == True]
+```
+
+```{python}
+helpful = verified.loc[verified['helpful'] > 0]
+```
+
+## Utils
+
+```{python}
+def generateProductsSampleCsv():
+    df = pd.DataFrame(columns=data.columns)
+    for index in range(1,11):
+        df.loc[index] = data.iloc[randint(1,10000)]
+    df.to_csv('../dataApp/sampleProducts.csv', columns=["_id", "title", "category", "price", "avg_rating", "pictures", "questions_number"], sep='\t', index=False)
+
+def generateCsvRatings():
+    dic = {}
+    for index in range(0,6):
+        if index == 0:
+            dic[index] = len(data.loc[data['avg_rating'] == index])
+        elif index < 5:
+            dic[index] = len(data.loc[(data['avg_rating'] > index) & (data['avg_rating'] < index+1)])
+        else:
+            dic[index] = len(data.loc[data['avg_rating'] == index])
+    pd.DataFrame(list(dic.items()), columns=['rating', 'value']).to_csv('../dataApp/ratingsDistrib.csv', sep='\t', index=False)
+
+def generateReviewsSampleCsv():
+    data.head(10).to_csv('../dataApp/sampleReviews.csv', index=False, sep='\t')
+
+def generateReviewsSampleTextCsv():
+    data.loc[data['product'] == 'B00ESBHG3Q'].to_csv('../dataApp/sampleReviewsText.csv', index=False, sep='\t')
+
+def generateRatingDistribCsv():
+    distrib = helpful['rating'].value_counts()
+    pd.DataFrame({'rating': distrib.keys(), 'value': distrib.values}).to_csv('../dataApp/ratingDistribFilteredReviews.csv', sep='\t', index=False)
+    
+def cleanReviews(data):
+    data['rating'] = data['rating'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+    data['helpful'] = data['helpful'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+    
+```
+
+```{python}
+generateCsvRatings()
+```
+
+```{python}
+generateProductsSampleCsv()
+```
+
+```{python}
+generateReviewsSampleCsv()
+```
+
+```{python}
+generateReviewsSampleTextCsv()
+```
+
+```{python}
+generateRatingDistribCsv()
+```
+
+```{python}
+cy = nx.readwrite.json_graph.cytoscape_data(full_graph)
+cy
+```
+
+```{python}
+def convert2cytoscapeJSON(G):
+    # load all nodes into nodes array
+    final = {}
+    final["nodes"] = []
+    final["edges"] = [] 
+    for node in G.nodes():
+        nx = {}
+        nx["data"] = {}
+        nx["data"]["id"] = node
+        nx["data"]["label"] = node
+        final["nodes"].append(nx.copy())
+    #load all edges to edges array
+    for edge in G.edges():
+        nx = {}
+        nx["data"]={}
+        nx["data"]["id"]=edge[0]+edge[1]
+        nx["data"]["source"]=edge[0]
+        nx["data"]["target"]=edge[1]
+        final["edges"].append(nx)
+    return json.dumps(final)
+```
+
+```{python}
+prova = convert2cytoscapeJSON(full_graph)
 ```
 
 ```{python}
@@ -916,13 +1022,25 @@ plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2,3])), 'pos.txt', n
 ```
 
 ```{python}
-
+with open ('../networkData/prova2.cyjs') as prova:
+    json_prova = json.load(prova)
+json_prova
 ```
 
 ```{python}
-
+a = json_prova['elements']['nodes'] + json_prova['elements']['edges']
 ```
 
 ```{python}
+a['selected']
+```
 
+```{python}
+for row in a:
+    if row['data']['shared_name'] == 'B06XYPK9M6':
+        row['data']['selected'] = True
+```
+
+```{python}
+nx.nx_agraph.graphviz_layout(full_graph)
 ```

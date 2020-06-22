@@ -2,11 +2,12 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from pages.exploration import exploration_layout, products_layout, pieCategories
-from pages.network import network_layout
+from pages.exploration import exploration_layout, products_layout, sample_products_list, reviews_layout, histCategories, histRating, histPrice
+from pages.network import network_layout, graphData
 from pages.sentiment import sentiment_layout
 from pages.about import about_layout
 from dash.dependencies import Input, Output
+import dash_cytoscape as cyto
 
 app = dash.Dash(
     __name__,
@@ -17,6 +18,19 @@ app = dash.Dash(
     ],
     suppress_callback_exceptions=True
 )
+
+stylesheet=[
+        # Class selectors
+        {
+            'selector': '.red',
+            'style': {
+                'background-color': 'red',
+                'line-color': 'red',
+                'width': '300px',
+                'height': '300px'
+            }
+        }
+    ]
 
 app.layout = html.Div(children=[
     dcc.Location(id='url', refresh=False),
@@ -65,22 +79,59 @@ def render_content(tab):
     if tab == 'products':
         return products_layout
     elif tab == 'reviews':
-        return html.Div([
-            html.H3('Tab content 2')
-        ])
+        return reviews_layout
 
 @app.callback(
-    dash.dependencies.Output('hidden-div', 'children'),
-    [dash.dependencies.Input('btn-cat', 'n_clicks')])
-def update_output(btnCat):
+    [dash.dependencies.Output('hidden-div-1', 'children'),
+    dash.dependencies.Output('title-section', 'children')],
+    [dash.dependencies.Input('btn-cat', 'n_clicks'),
+    dash.dependencies.Input('btn-rat', 'n_clicks'),
+    dash.dependencies.Input('btn-price', 'n_clicks'),
+    dash.dependencies.Input('btn-prod', 'n_clicks') ])
+def update_output(btnCat, btnRat, btnPrice, btnProd):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'btn-cat' in changed_id:
         return dcc.Graph(
                     id='example-graph-2',
-                    figure=pieCategories
-                )
+                    figure=histCategories
+                ), 'Categories Distribution'
+    elif 'btn-rat' in changed_id:
+        return dcc.Graph(
+                    id='example-graph-3',
+                    figure=histRating
+                ), 'Rating Distribution'
+    elif 'btn-price' in changed_id:
+        return dcc.Graph(
+                    id='example-graph-4',
+                    figure=histPrice
+                ), 'Price Distribution'
+    elif 'btn-prod' in changed_id:
+        return sample_products_list, 'Products Samples'
     else:
-        print('none')
+        return sample_products_list, 'Products Samples'
+
+@app.callback(
+    dash.dependencies.Output('network-output', 'children'),
+    [dash.dependencies.Input('btn-net', 'n_clicks') ])
+def update_output(btnNet):
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if 'btn-net' in changed_id:
+        for row in graphData:
+            if row['data']['shared_name'] == 'B07NVMYB7K':
+                row['classes'] = 'red'
+        for row in graphData:
+            if row['data']['shared_name'] == 'B07NVMYB7K':
+                print(row)
+
+        return  cyto.Cytoscape(
+            id='cytoscape',
+            layout={'name': 'preset'},
+            stylesheet=stylesheet,
+            style={'width': '100%', 'height': '400px'},
+            elements=graphData
+        )
+    else:
+        return
 
 if __name__ == '__main__':
     app.run_server(debug=True)
