@@ -433,9 +433,13 @@ elif method == "spacy":
     processTitlesFun=processTitlesSpacy
 else:
     processTitlesFun=processTitlesSimple
-        
-communities_stats["top_words"] = communities_stats["community"].progress_apply(\
-                                        lambda x: processTitlesFun(data.loc[data['_id'].isin(x)]["title"]))
+
+communities_stats["top_words"] = communities_stats["community"].apply(\
+                                        lambda x: processTitlesSimple(data.loc[data['_id'].isin(x)]["title"]))
+
+communities_stats["top_ents"] = communities_stats["community"].apply(\
+                                        lambda x: processTitlesSpacy(data.loc[data['_id'].isin(x)]["title"]))
+
 ```
 
 ```{python}
@@ -500,7 +504,7 @@ titles
 ```
 
 ```{python}
-str = "ciao mi chiamo Capitan Harlock"
+str = "ciao mi chiamo Capitan Harlock e sono Blu"
 a = nltk.tokenize.word_tokenize(str)
 a = nltk.pos_tag(a)
 a = nltk.ne_chunk(a)
