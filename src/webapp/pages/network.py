@@ -73,7 +73,7 @@ network_layout = [
         html.Div(children=[
             html.I('help_outline', className='material-icons-round', style={'zIndex': '20'}),
             html.Div(children=[
-                'This graph has been constructed by collapsing the \'also_bought\' and \'bought_together\' relationships.'
+                'The network links represent the relationships between two products often bought in combination (not necessarly at the same time)'
             ], className='info-text zan-box-shadow')
         ],className='info-wrapper flex-column flex-center justify-center')
     ], className="info-container zan-box-shadow", style={'fontSize': '30px', 'color': '#DBDBDB'}),
