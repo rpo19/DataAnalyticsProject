@@ -3,11 +3,12 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from pages.exploration import exploration_layout, products_layout, sample_products_list, reviews_layout, histCategories, histRating, histPrice
-from pages.network import network_layout, graphData
+from pages.network import network_layout, readGraph
 from pages.sentiment import sentiment_layout
 from pages.about import about_layout
 from dash.dependencies import Input, Output
 import dash_cytoscape as cyto
+import json
 
 app = dash.Dash(
     __name__,
@@ -19,18 +20,24 @@ app = dash.Dash(
     suppress_callback_exceptions=True
 )
 
-stylesheet=[
-        # Class selectors
-        {
-            'selector': '.red',
-            'style': {
-                'background-color': 'red',
-                'line-color': 'red',
-                'width': '300px',
-                'height': '300px'
-            }
+default_stylesheet = [
+    {
+        'selector': 'node:selected',
+        'style': {
+            'background-color': 'red',
+            'width': '100px',
+            'height': '100px'
         }
-    ]
+    },
+    {
+        'selector': 'node',
+        'style': {
+            'width': 'data(nodeSize)',
+            'height': 'data(nodeSize)'
+        }
+    },
+]
+
 
 app.layout = html.Div(children=[
     dcc.Location(id='url', refresh=False),
@@ -110,33 +117,80 @@ def update_output(btnCat, btnRat, btnPrice, btnProd):
     else:
         return sample_products_list, 'Products Samples'
 
+@app.callback(Output('confirm', 'displayed'),
+              [Input('btn-giant', 'n_clicks')])
+def display_confirm(btnGiant):
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if 'btn-giant' in changed_id:
+        return True
+    return False
+
 @app.callback(
     dash.dependencies.Output('network-output', 'children'),
-    [dash.dependencies.Input('btn-reset', 'n_clicks') ])
-def update_output(btnReset):
+    [Input('confirm', 'submit_n_clicks'),
+    dash.dependencies.Input('dropComm', 'value')])
+def update_output(submit_n_clicks, value):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    if 'btn-reset' in changed_id:
-        for row in graphData:
-            if row['data']['shared_name'] == 'B07NVMYB7K':
-                row['classes'] = 'red'
-        return  cyto.Cytoscape(
-            id='cytoscape',
-            layout={'name': 'preset'},
-            stylesheet=stylesheet,
-            style={'width': '100%', 'height': '100%'},
-            elements=graphData
-        )
+    if 'dropComm' in changed_id:
+        if value is not None:
+            graphData = readGraph(value)
+            return  cyto.Cytoscape(
+                    id='cytoscape',
+                    layout={'name': 'preset'},
+                    stylesheet=default_stylesheet,
+                    autolock=True,
+                    style={'width': '100%', 'height': '100%'},
+                    elements=graphData)
+        else:
+            return html.Div(children=[
+                html.Div('Choose a network to display', className='mb-10'),
+                html.I(children='get_app', className='material-icons-round', style={'fontSize': '60px'}),
+            ], className='flex-column flex-center justify-center subtitle network-title-placeholder')
     else:
-        for row in graphData:
-            if row['data']['shared_name'] == 'B07NVMYB7K':
-                row['classes'] = 'red'
-        return  cyto.Cytoscape(
-            id='cytoscape',
-            layout={'name': 'preset'},
-            stylesheet=stylesheet,
-            style={'width': '100%', 'height': '100%'},
-            elements=graphData
-        )
+        if submit_n_clicks:
+            graphData = readGraph('giantComponent.cyjs')
+            return  cyto.Cytoscape(
+                id='cytoscape',
+                layout={'name': 'preset'},
+                stylesheet=default_stylesheet,
+                autolock=True,
+                style={'width': '100%', 'height': '100%'},
+                elements=graphData)
+        else:
+            return html.Div(children=[
+                html.Div('Choose a network to display', className='mb-10'),
+                html.I(children='get_app', className='material-icons-round', style={'fontSize': '60px'}),
+            ], className='flex-column flex-center justify-center subtitle network-title-placeholder')
+
+@app.callback(dash.dependencies.Output('cytoscape', 'stylesheet'),
+    [dash.dependencies.Input('radioColor', 'value')])
+def update_stylesheet(value):
+    if value is not None:
+        communities_style = [
+            {
+                'selector': 'node',
+                'style': {
+                    'background-color': value
+                }
+            }
+        ]
+        return default_stylesheet + communities_style
+    else:
+        return []
+
+@app.callback(Output('node-output', 'children'),
+              [Input('cytoscape', 'tapNodeData')])
+def displayTapNodeData(data):
+    if data is not None:
+        return html.Div(children=[
+                html.Div(children=[
+                    html.Div(data['title'], className='subtitle'),
+                    html.Div('Category: ' + data['category']),
+                    html.Div('Degree: ' + str(data['Degree'])),
+                    html.Div('Community: ' + str(data['community'])),
+                    
+                ], className=' flex-column')
+            ], className='node-info-content flex-column zan-box-shadow'),
 
 if __name__ == '__main__':
     app.run_server(debug=True)

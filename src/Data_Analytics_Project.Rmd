@@ -26,6 +26,7 @@ import operator
 import nltk
 import scipy
 import json
+import random
 
 from random import randint
 from tqdm.notebook import tqdm
@@ -990,61 +991,65 @@ generateRatingDistribCsv()
 ```
 
 ```{python}
-cy = nx.readwrite.json_graph.cytoscape_data(full_graph)
-cy
+nx.number_connected_components(full_graph)
 ```
 
 ```{python}
-def convert2cytoscapeJSON(G):
-    # load all nodes into nodes array
-    final = {}
-    final["nodes"] = []
-    final["edges"] = [] 
-    for node in G.nodes():
-        nx = {}
-        nx["data"] = {}
-        nx["data"]["id"] = node
-        nx["data"]["label"] = node
-        final["nodes"].append(nx.copy())
-    #load all edges to edges array
-    for edge in G.edges():
-        nx = {}
-        nx["data"]={}
-        nx["data"]["id"]=edge[0]+edge[1]
-        nx["data"]["source"]=edge[0]
-        nx["data"]["target"]=edge[1]
-        final["edges"].append(nx)
-    return json.dumps(final)
+def readGraph(network):
+    with open ('../networkData/' + network, encoding='cp850') as prova:
+        json_prova = json.load(prova)
+        nodes = json_prova['elements']['nodes']
+        edges = json_prova['elements']['edges']
+    addFieldsToNodes(nodes)
+    net = addEdges(nodes, edges)    
+    return net
 ```
 
 ```{python}
-prova = convert2cytoscapeJSON(full_graph)
+def writeGraph(network, fileName):
+    with open('../networkData/'+ fileName, 'w') as outfile:
+        json.dump(network, outfile)
 ```
 
 ```{python}
-
+def addEdges(nodes, edges):
+        return nodes + edges
 ```
 
 ```{python}
-with open ('../networkData/prova2.cyjs') as prova:
-    json_prova = json.load(prova)
-json_prova
+def addFieldsToNodes(nodes):
+    for element in nodes:
+        category = element['data']['category']
+        community = element['data']['community']
+        element['data']['catColor'] = categoriesDf.loc[categoriesDf['category'] == category]['color'].values[0]
+        if community > 10:
+            element['data']['commColor'] = '#999999'
+        else:
+            element['data']['commColor'] = communitiesDf.loc[communitiesDf['community'] == community]['color'].values[0]
+        element['data']['nodeSize'] = int(element['data']['Degree']) * 10
 ```
 
 ```{python}
-a = json_prova['elements']['nodes'] + json_prova['elements']['edges']
+categoriesDf = pd.DataFrame({'category':categories.keys(), 'color': None})
+random.seed(10)
+for index, row in categoriesDf.iterrows():
+    row['color'] = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+categoriesDf
 ```
 
 ```{python}
-a['selected']
+comm = communities_stats.head(10)
+communitiesDf = pd.DataFrame({'community':comm['id'].values, 'color': None})
+random.seed(50)
+for index, row in communitiesDf.iterrows():
+    row['color'] = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+communitiesDf
 ```
 
 ```{python}
-for row in a:
-    if row['data']['shared_name'] == 'B06XYPK9M6':
-        row['data']['selected'] = True
+net = readGraph('community1.cyjs')
 ```
 
 ```{python}
-nx.nx_agraph.graphviz_layout(full_graph)
+writeGraph(net, 'community1.cyjs')
 ```

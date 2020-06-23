@@ -320,6 +320,7 @@ button {
     border-radius: 6px;
     background: white;
     z-index: 10;
+    animation: slideInFromLeft 0.5s ease-out ;
 }
 
 .network-menu-container {
@@ -332,6 +333,21 @@ button {
     border-radius: 6px;
     background: white;
     z-index: 10;
+}
+
+
+.node-info-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+}
+
+.node-info-content {
+    max-width: 500px;
+    background: white;
+    border-radius: 6px;
+    padding: 10px;
 }
 
 .btn-small {
@@ -358,6 +374,17 @@ button {
     margin-bottom: 10px;
 }
 
+.disp-flex {
+    display: flex;
+}
+.justify-center {
+    justify-content: center;
+}
+
+.network-title-placeholder {
+    color: #dbdbdb;
+}
+
 
 @media only screen and (max-width: 1024px) {
     .sidebar {
@@ -381,3 +408,14 @@ button {
       transform: rotate(360deg);
     }
 }
+
+@keyframes slideInFromLeft {
+    0% {
+      transform: translateX(30%);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
