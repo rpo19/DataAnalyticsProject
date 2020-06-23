@@ -150,7 +150,7 @@ def update_output(submit_n_clicks, value):
                         html.Div('Top Entities: ' + str(topEnts))
                     ]),
                     html.Div(children=[
-                        html.I('help_outline', className='material-icons-round', style={'marginLeft': 'auto'}),
+                        html.I('cloud_queue', className='material-icons-round', style={'marginLeft': 'auto'}),
                         html.Div(children=[
                             html.Img(src='data:image/png;base64,{0}'.format(b64_image))
                         ], className='wordcloud-container zan-box-shadow'),
