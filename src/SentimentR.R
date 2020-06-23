@@ -1,3 +1,4 @@
+# TODO: setwd and install  packages
 library(sentix)
 
 
