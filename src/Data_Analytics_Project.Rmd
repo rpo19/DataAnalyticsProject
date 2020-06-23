@@ -468,7 +468,7 @@ def word_cloud_to_base64(word_counter):
     filename = "/tmp/wordcloud.png"
     wordcloud.to_file(filename)
     with open(filename, "rb") as wfile:
-        encoded = base64.b64encode(wfile.read())
+        encoded = base64.b64encode(wfile.read()).decode('ascii')
     return encoded
 ```
 
