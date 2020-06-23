@@ -35,3 +35,7 @@ dataReviews_NEUT = read.csv("../data/dataReviews_NEUT.csv", stringsAsFactors=FAL
 sentiment_NEUT = compute_sentix(dataReviews_NEUT, model)
 write.csv(sentiment_NEUT, "../data/dataReviews_NEUT_pol.csv", row.names=FALSE)
 
+# compute single_product
+dataReviews_prod = read.csv("../data/single_product.csv", stringsAsFactors=FALSE)  # read csv file 
+sentiment_prod = compute_sentix(dataReviews_prod, model)
+write.csv(sentiment_prod, "../data/single_product_pol.csv", row.names=FALSE)
