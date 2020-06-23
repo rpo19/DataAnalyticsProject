@@ -11,6 +11,8 @@ def readGraph(network):
         return json.load(prova)
         #return json_prova['elements']['nodes'] + json_prova['elements']['edges']
 
+communities_stats = pd.read_csv("../dataApp/communities_stats.csv", sep='\t')
+
 
 network_layout = [
     dcc.ConfirmDialog(
@@ -22,16 +24,16 @@ network_layout = [
         dcc.Dropdown(
             id='dropComm',
             options=[
-                {'label': 'Community 1', 'value': 'community1.cyjs'},
-                {'label': 'Community 2', 'value': 'community2.cyjs'},
-                {'label': 'Community 3', 'value': 'community3.cyjs'},
-                {'label': 'Community 4', 'value': 'community4.cyjs'},
-                {'label': 'Community 5', 'value': 'community5.cyjs'},
-                {'label': 'Community 6', 'value': 'community6.cyjs'},
-                {'label': 'Community 7', 'value': 'community7.cyjs'},
-                {'label': 'Community 8', 'value': 'community8.cyjs'},
-                {'label': 'Community 9', 'value': 'community9.cyjs'},
-                {'label': 'Community 10', 'value': 'community10.cyjs'}
+                {'label': 'Community 1', 'value': '1'},
+                {'label': 'Community 2', 'value': '2'},
+                {'label': 'Community 3', 'value': '3'},
+                {'label': 'Community 4', 'value': '4'},
+                {'label': 'Community 5', 'value': '5'},
+                {'label': 'Community 6', 'value': '6'},
+                {'label': 'Community 7', 'value': '7'},
+                {'label': 'Community 8', 'value': '8'},
+                {'label': 'Community 9', 'value': '9'},
+                {'label': 'Community 10', 'value': '10'}
             ]
         ),
         html.Div(className='mb-10'),
@@ -61,13 +63,20 @@ network_layout = [
         
     ], className="network-menu-container zan-box-shadow flex-column"),
     html.Div(children=[
-        html.Div('Graph stats', className='subtitle mb-10'),
-        html.Div('Nodes: 17914'),
-        html.Div('Edges: 26572', className='mb-10'),
-        html.Div('N. of categories: 37'),
-        html.Div('N. of communities: 1064'),
-        html.Div('N. of conn. cmps: 962'),
+        html.Div(children=[
+            html.Div('Graph stats', className='subtitle'),
+            html.Div(id='wordcloud-output', className='disp-flex flex-center', style={'position': 'relative', 'marginLeft': 'auto'})
+        ], className='flex-row subtitle mb-10'),
+        html.Div(id='stats-output', className='flex-column')
     ], className="network-stats-container zan-box-shadow flex-column"),
+    html.Div(children=[
+        html.Div(children=[
+            html.I('help_outline', className='material-icons-round', style={'zIndex': '20'}),
+            html.Div(children=[
+                'This graph has been constructed by collapsing the \'also_bought\' and \'bought_together\' relationships.'
+            ], className='info-text zan-box-shadow')
+        ],className='info-wrapper flex-column flex-center justify-center')
+    ], className="info-container zan-box-shadow", style={'fontSize': '30px', 'color': '#DBDBDB'}),
     html.Div(id='network-output', className="network-container flex-column flex-grow flex-center justify-center"),
     html.Div(id='node-output', className='node-info-container'),
     html.Div(id='placeholder-output', style={'display': 'none'})

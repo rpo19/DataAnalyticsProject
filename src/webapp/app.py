@@ -3,12 +3,13 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from pages.exploration import exploration_layout, products_layout, sample_products_list, reviews_layout, histCategories, histRating, histPrice
-from pages.network import network_layout, readGraph
+from pages.network import network_layout, readGraph, communities_stats
 from pages.sentiment import sentiment_layout
 from pages.about import about_layout
 from dash.dependencies import Input, Output
 import dash_cytoscape as cyto
 import json
+import ast
 
 app = dash.Dash(
     __name__,
@@ -119,41 +120,84 @@ def display_confirm(btnGiant):
     return False
 
 @app.callback(
-    dash.dependencies.Output('network-output', 'children'),
+    [dash.dependencies.Output('network-output', 'children'),
+    dash.dependencies.Output('stats-output', 'children'),
+    dash.dependencies.Output('wordcloud-output', 'children')],
     [Input('confirm', 'submit_n_clicks'),
     dash.dependencies.Input('dropComm', 'value')])
 def update_output(submit_n_clicks, value):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'dropComm' in changed_id:
         if value is not None:
-            graphData = readGraph(value)
-            return  cyto.Cytoscape(
+            graphData = readGraph('community' + value + '.cyjs')
+            communityStats = communities_stats.loc[communities_stats['id'] == int(value)]
+            topWords = list(ast.literal_eval(communityStats['top_words'][int(value)-1]).keys())[0:3]
+            topEnts= list(ast.literal_eval(communityStats['top_ents'][int(value)-1]).keys())[0:3]
+            b64_image = communityStats["wordclouds"].values[0]
+            return  [cyto.Cytoscape(
                     id='cytoscape',
                     layout={'name': 'preset'},
                     stylesheet=default_stylesheet,
                     autolock=True,
                     style={'width': '100%', 'height': '100%'},
-                    elements=graphData)
+                    elements=graphData), 
+                    html.Div(children=[
+                        html.Div('Nodes: ' + str(communityStats['cardinality'].values[0])),
+                        html.Div('Max Degree: ' + str(communityStats['max_degree'].values[0])),
+                        html.Div('Avg Clust. Coeff: ' + str(round(communityStats['avg_clust'].values[0], 2)), className='mb-10'),
+                        html.Div('Dominant Category: ' + communityStats['dominant_category'].values[0], className='mb-10'),
+                        html.Div('Top Words: ' + str(topWords), className='mb-10'),
+                        html.Div('Top Entities: ' + str(topEnts))
+                    ]),
+                    html.Div(children=[
+                        html.I('help_outline', className='material-icons-round', style={'marginLeft': 'auto'}),
+                        html.Div(children=[
+                            html.Img(src='data:image/png;base64,{0}'.format(b64_image))
+                        ], className='wordcloud-container zan-box-shadow'),
+                    ], className='disp-flex flex-center justify-center icon-wordcloud-wrapper')
+                    ]
         else:
-            return html.Div(children=[
+            return [html.Div(children=[
                 html.Div('Choose a network to display', className='mb-10'),
                 html.I(children='get_app', className='material-icons-round', style={'fontSize': '60px'}),
-            ], className='flex-column flex-center justify-center subtitle network-title-placeholder')
+            ], className='flex-column flex-center justify-center subtitle network-title-placeholder'), 
+            html.Div(children=[
+                html.Div('Nodes: 17914'),
+                html.Div('Edges: 26572', className='mb-10'),
+                html.Div('N. of categories: 37'),
+                html.Div('N. of communities: 1064'),
+                html.Div('N. of conn. cmps: 962'),
+            ], className='flex-column'), '']
     else:
         if submit_n_clicks:
             graphData = readGraph('giantComponent.cyjs')
-            return  cyto.Cytoscape(
+            return  [cyto.Cytoscape(
                 id='cytoscape',
                 layout={'name': 'preset'},
                 stylesheet=default_stylesheet,
                 autolock=True,
                 style={'width': '100%', 'height': '100%'},
-                elements=graphData)
+                elements=graphData), 
+                html.Div(children=[
+                html.Div('Nodes: 17914'),
+                html.Div('Edges: 26572', className='mb-10'),
+                html.Div('N. of categories: 37'),
+                html.Div('N. of communities: 1064'),
+                html.Div('N. of conn. cmps: 962'),
+            ], className='flex-column'), '']
         else:
-            return html.Div(children=[
+            return [html.Div(children=[
                 html.Div('Choose a network to display', className='mb-10'),
                 html.I(children='get_app', className='material-icons-round', style={'fontSize': '60px'}),
-            ], className='flex-column flex-center justify-center subtitle network-title-placeholder')
+            ], className='flex-column flex-center justify-center subtitle network-title-placeholder'),
+            html.Div(children=[
+                html.Div('Nodes: 17914'),
+                html.Div('Edges: 26572', className='mb-10'),
+                html.Div('N. of categories: 37'),
+                html.Div('N. of communities: 1064'),
+                html.Div('N. of conn. cmps: 962'),
+            ], className='flex-column'), '']
+            
 
 @app.callback(dash.dependencies.Output('cytoscape', 'stylesheet'),
     [dash.dependencies.Input('radioColor', 'value'),
@@ -162,7 +206,7 @@ def update_stylesheet(value, size):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     nodeSize = ''
     if size == 'default':
-        nodeSize = ''
+        nodeSize = '20'
     else:
         nodeSize = 'data(nodeSize)'
     if value is None:
