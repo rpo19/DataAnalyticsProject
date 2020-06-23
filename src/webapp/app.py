@@ -29,13 +29,6 @@ default_stylesheet = [
             'height': '100px'
         }
     },
-    {
-        'selector': 'node',
-        'style': {
-            'width': 'data(nodeSize)',
-            'height': 'data(nodeSize)'
-        }
-    },
 ]
 
 
@@ -163,20 +156,30 @@ def update_output(submit_n_clicks, value):
             ], className='flex-column flex-center justify-center subtitle network-title-placeholder')
 
 @app.callback(dash.dependencies.Output('cytoscape', 'stylesheet'),
-    [dash.dependencies.Input('radioColor', 'value')])
-def update_stylesheet(value):
-    if value is not None:
-        communities_style = [
+    [dash.dependencies.Input('radioColor', 'value'),
+    dash.dependencies.Input('dropSize', 'value')])
+def update_stylesheet(value, size):
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    nodeSize = ''
+    if size == 'default':
+        nodeSize = ''
+    else:
+        nodeSize = 'data(nodeSize)'
+    if value is None:
+        value = ''
+    
+    additional_styles = [
             {
                 'selector': 'node',
                 'style': {
-                    'background-color': value
+                    'background-color': value,
+                    'width': nodeSize,
+                    'height': nodeSize
                 }
             }
-        ]
-        return default_stylesheet + communities_style
-    else:
-        return []
+    ]    
+    return default_stylesheet + additional_styles
+
 
 @app.callback(Output('node-output', 'children'),
               [Input('cytoscape', 'tapNodeData')])

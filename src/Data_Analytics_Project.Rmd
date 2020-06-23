@@ -1047,9 +1047,9 @@ communitiesDf
 ```
 
 ```{python}
-net = readGraph('community1.cyjs')
+net = readGraph('giantComponent.cyjs')
 ```
 
 ```{python}
-writeGraph(net, 'community1.cyjs')
+writeGraph(net, 'giantComponent.cyjs')
 ```

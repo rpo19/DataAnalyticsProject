@@ -18,14 +18,6 @@ network_layout = [
         message='This operation requires a lot of resources, are you sure to proceed?',
     ),
     html.Div(children=[
-        # html.Label('Color', className='mb-5'),
-        # dcc.RadioItems(
-        #     options=[
-        #         {'label': 'Communities', 'value': 'rgbComm'},
-        #         {'label': 'Categories', 'value': 'rgbCat'},
-        #     ],
-        #     value='rgbCat'
-        # ), 
         html.Label('Subgraph by community', className='mb-5'),
         dcc.Dropdown(
             id='dropComm',
@@ -41,6 +33,16 @@ network_layout = [
                 {'label': 'Community 9', 'value': 'community9.cyjs'},
                 {'label': 'Community 10', 'value': 'community10.cyjs'}
             ]
+        ),
+        html.Div(className='mb-10'),
+        html.Label('Node size', className='mb-5'),
+        dcc.Dropdown(
+            id='dropSize',
+            options=[
+                {'label': 'Default', 'value': 'default'},
+                {'label': 'By degree centrality', 'value': 'degree'},
+            ],
+            value='default'
         ),
         html.Div(className='mb-10'),
         html.Label('Color', className='mb-5'),
