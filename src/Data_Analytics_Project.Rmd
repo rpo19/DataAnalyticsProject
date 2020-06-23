@@ -462,7 +462,26 @@ communities_stats["top_ents"] = communities_stats["community"].apply(\
 ```
 
 ```{python}
-communities_stats["top_ents"]
+import base64
+def word_cloud_to_base64(word_counter):
+    wordcloud = WordCloud(background_color='white').generate_from_frequencies(word_counter)
+    filename = "/tmp/wordcloud.png"
+    wordcloud.to_file(filename)
+    with open(filename, "rb") as wfile:
+        encoded = base64.b64encode(wfile.read())
+    return encoded
+```
+
+```{python}
+communities_stats["wordclouds"] = communities_stats.iloc[0:9]["top_words"].apply(word_cloud_to_base64)
+```
+
+```{python}
+communities_stats.iloc[0:11]["wordclouds"]
+```
+
+```{python}
+communities_stats.to_csv("../dataApp/communities_stats.csv", sep='\t')
 ```
 
 ```{python}
