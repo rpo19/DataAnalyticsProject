@@ -444,7 +444,7 @@ communities_stats["top_ents"] = communities_stats["community"].apply(\
 ```
 
 ```{python}
-communities_stats["top_words"]
+communities_stats["top_ents"]
 ```
 
 ```{python}
@@ -539,7 +539,7 @@ communities_stats.loc[communities_stats["dominant_category"].isnull()]
 ```{python}
 c = communities_stats.iloc[15]
 print(c)
-wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_words"])
+wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_ents"])
 plt.figure(figsize = (10, 8), facecolor = None) 
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
@@ -1052,4 +1052,35 @@ net = readGraph('giantComponent.cyjs')
 
 ```{python}
 writeGraph(net, 'giantComponent.cyjs')
+```
+
+```{python}
+# !pip install dandelion-eu
+```
+
+```{python}
+pip install spacy-dbpedia-spotlight
+```
+
+```{python}
+str = " ".join([x for (x,v) in communities_stats.iloc[0]["top_ents"].items()][0:3])
+str
+```
+
+```{python}
+communities_stats.iloc[0]
+```
+
+```{python}
+from dandelion import DataTXT
+dandelion_token = ''
+datatxt = DataTXT(app_id="08244596bdc443adad8240b9064f5f86", app_key="08244596bdc443adad8240b9064f5f86")
+response = datatxt.nex(str)
+for annotation in response.annotations:
+    print(annotation)
+```
+
+```{python}
+response
+
 ```
