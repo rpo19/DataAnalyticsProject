@@ -26,7 +26,7 @@ from nltk.stem.snowball import SnowballStemmer
 import string
 from nltk import wordpunct_tokenize
 
-#from wordcloud import WordCloud
+from wordcloud import WordCloud
 from datetime import datetime
 import pickle
 import re
@@ -56,26 +56,25 @@ import pyLDAvis
 ### Scommentare se si usano i dati iniziali
 
 ```{python}
-'''dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)'''
+dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
 ```
 
 ```{python}
-'''dataReviews'''
+dataReviewsChunk
 ```
 
 ```{python}
-'''
+
 chunk_list = []  # append each chunk df here 
 
 # Each chunk is in df format
 for chunk in dataReviewsChunk:
 
     chunk_list.append(chunk)
-'''
 ```
 
 ```{python}
-#dataReviews = pd.concat(chunk_list)
+dataReviews = pd.concat(chunk_list)
 ```
 
 ```{python}
@@ -83,16 +82,16 @@ for chunk in dataReviewsChunk:
 ```
 
 ```{python}
-'''def convert_to_int(field):
-    return field["$numberInt"]'''
+def convert_to_int(field):
+    return field["$numberInt"]
 ```
 
 ```{python}
-'''dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)'''
+dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)
 ```
 
 ```{python}
-'''dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)'''
+dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)
 ```
 
 ```{python}
@@ -110,10 +109,6 @@ for chunk in dataReviewsChunk:
 ```{python}
 '''dataReviews = dataReviews.loc[dataReviews["helpful"] != 0]
 dataReviews'''
-```
-
-```{python}
-
 ```
 
 ### Dati filtrati (vedi sopra)
@@ -369,7 +364,7 @@ count_vect
 ```
 
 ```{python}
-#bow.get_feature_names()[::2000]
+bow.get_feature_names()[::2000]
 ```
 
 ```{python}
@@ -684,12 +679,16 @@ dataReviews_neutre["polarity"].value_counts().plot(kind="bar")
 ### Prodotti nel tempo
 
 ```{python}
-dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
 ```
 
 ```{python}
 # look for good examples
-dataReviews.groupby('product').count().sort_values('_id', ascending=False).head(10)
+top_prods = dataReviews.groupby('product').count().sort_values('_id', ascending=False).head(4)
+```
+
+```{python}
+"B01ETRGE7M" in top_prods.index
 ```
 
 ```{python}
@@ -699,38 +698,174 @@ dataReviews.groupby('product').count().sort_values('_id', ascending=False).head(
 # B01EWQ10D8 non male
 # B0058BXHWE resegono
 # ... non ne ho piu provati di quelli del box sopra
-prod = "B0058BXHWE" 
-dataReviews_prodotto = dataReviews[dataReviews["product"]  == prod]
-len(dataReviews_prodotto)
+prod = "B01ETRGE7M" 
+dataReviews_prodotti = dataReviews[dataReviews["product"].isin(top_prods.index)]
 ```
 
 ```{python}
-dataReviews_prodotto["date"] = dataReviews_prodotto["date"].progress_apply(lambda string: datetime.strptime(string, '%Y-%m-%d')) 
+dataReviews_prodotti
 ```
 
 ```{python}
-dataReviews_prodotto=dataReviews_prodotto.assign(
-    Period=dataReviews_prodotto.date.dt.to_period('M')
-)
-
+dataReviews_prodotti["Period"] = dataReviews_prodotti["date"].apply(lambda x: x.strftime('%Y-%m'))
 ```
 
 ```{python}
-dataReviews_prodotto["polarity"] = dataReviews_prodotto["body"].progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)]))[0])
+dataReviews_prodotti["Period"].iloc[0]
 ```
 
 ```{python}
-dataReviews_prodotto_month = dataReviews_prodotto.groupby(['Period']).progress_apply(lambda x: len(x.loc[x["polarity"]=="positive"])/len(x))
+dataReviews_prodotti
+```
+
+```{python}
+dataReviews_prodotti["polarity"] = dataReviews_prodotti["body"].progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)]))[0])
+```
+
+```{python}
+dataReviews_prodotti
+```
+
+```{python}
+dataReviews_prodotti["polarityNum"] = dataReviews_prodotti["polarity"].apply(lambda x: 1 if x == "positive" else 0)
+```
+
+```{python}
+dataReviews_prodotti
+```
+
+```{python}
+#dataReviews_prodotti_month = dataReviews_prodotti.groupby(['product', 'Period']).progress_apply(lambda x: len(x.loc[x["polarity"]=="positive"])/len(x)).to_frame("polarity")
 
 # use the rating intead of polarity
-dataReviews_prodotto_month_rat = dataReviews_prodotto.groupby(['Period']).progress_apply(lambda x: len(x.loc[x["rating"]>3])/len(x))
+dataReviews_prodotti_month = dataReviews_prodotti[["product", "Period", "rating", "polarityNum"]]\
+    .groupby(['product', 'Period']).mean()#.progress_apply(lambda x: len(x.loc[x["rating"]>3])/len(x))
 
 
 
 ```
 
 ```{python}
-dataReviews_prodotto_month.head(20)
+def trendline(df, order=1):
+    coeffs = np.polyfit(range(0,len(df.index)), df, order)
+    #slope = coeffs[-2]
+    return coeffs[-2], [coeffs[-2] * x + coeffs[-1] for x in range(0,len(df.index))]
+
+
+```
+
+```{python}
+dataReviews_prodotti_month["rating"] = dataReviews_prodotti_month["rating"] / 5
+```
+
+```{python}
+dataReviews_prodotti_month.loc["B00G9WHN12"].plot()
+```
+
+```{python}
+dataReviews_prodotti_month[["rating", "polarityNum"]]
+```
+
+```{python}
+coeffs = []
+lines = []
+for i in dataReviews_prodotti_month.index.get_level_values(0).value_counts().index:
+    coeff, line = trendline(dataReviews_prodotti_month.loc[i]["polarityNum"])
+    lines += line
+    coeffs += [coeff] * len(line)
+```
+
+```{python}
+len(lines)
+```
+
+```{python}
+dataReviews_prodotti_month["trendCoeff"] = coeffs
+dataReviews_prodotti_month["trendLine"] = lines
+```
+
+```{python}
+dataReviews_prodotti_month.loc["B00G9WHN12"].plot()
+```
+
+```{python}
+dataReviews_prodotti_month.to_csv("../data/datarevies_prodotti_month.csv")
+```
+
+```{python}
+[coeffs for i in dataReviews_prodotti_month.index.get_level_values(0).value_counts().index coeffs, line = trendline(dataReviews_prodotti_month.loc[i]["polarityNum"])]
+```
+
+```{python}
+dataReviews_prodotti_month
+```
+
+```{python}
+[1] * 5
+```
+
+```{python}
+dataReviews_prodotti_month.apply(trendline)
+```
+
+```{python}
+[1,2,3,4][-2:]
+```
+
+```{python}
+myp
+```
+
+```{python}
+trendline(myp["rating"])
+```
+
+```{python}
+coeffs[-2]x + coeffs[-1] = y
+```
+
+```{python}
+myp["trend"]=[-0.00372411 * x + 0.93858209 for x in range(0,65)]
+```
+
+```{python}
+myp = dataReviews_prodotti_month.loc["B00G9WHN12"]
+```
+
+```{python}
+myp.plot()
+```
+
+```{python}
+len(dataReviews_prodotti_month["rating"])
+```
+
+```{python}
+myp.plot()
+```
+
+```{python}
+trendline(range(0,len(myp.index)), myp["polarityNum"], 1)
+```
+
+```{python}
+dataReviews_prodotti_month.apply(trendline, axis=1)
+```
+
+```{python}
+pd.concat([dataReviews_prodotti_month, dataReviews_prodotti_month_rat]).loc["B00G9WHN12"]
+```
+
+```{python}
+dataReviews_prodotti_month.loc["B00G9WHN12"]
+```
+
+```{python}
+dataReviews_prodotti_month_rat.loc["B00G9WHN12"]
+```
+
+```{python}
+dataReviews_prodotti_month.to_frame().loc["B00G9WHN12"].plot()
 ```
 
 ```{python}
@@ -738,9 +873,14 @@ dataReviews_prodotto_month.plot()
 ```
 
 ```{python}
-dataReviews_prodotto_month_rat.plot()
+dataReviews_prodotto_month_rat
 ```
 
 ```{python}
-str(dataReviews_prodotto["date"])
+dataReviews_prodotto_month_rat
+```
+
+```{python}
+import json
+dataReviews_prodotto_month_rat.to_json()
 ```
