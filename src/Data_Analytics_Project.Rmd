@@ -1056,6 +1056,7 @@ def addEdges(nodes, edges):
 ```{python}
 def addFieldsToNodes(nodes):
     for element in nodes:
+        elementId = element['data']['name']
         category = element['data']['category']
         community = element['data']['community']
         element['data']['catColor'] = categoriesDf.loc[categoriesDf['category'] == category]['color'].values[0]
@@ -1064,6 +1065,10 @@ def addFieldsToNodes(nodes):
         else:
             element['data']['commColor'] = communitiesDf.loc[communitiesDf['community'] == community]['color'].values[0]
         element['data']['nodeSize'] = int(element['data']['Degree']) * 10
+        if elementId == communities_stats.iloc[0]['max_degree_id']:
+            element['data']['centralNode'] = 1
+        else:
+            element['data']['centralNode'] = 0
 ```
 
 ```{python}
@@ -1120,4 +1125,8 @@ for annotation in response.annotations:
 ```{python}
 response
 
+```
+
+```{python}
+communities_stats.iloc[0]['max_degree_id']
 ```

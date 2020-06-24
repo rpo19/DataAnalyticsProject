@@ -25,11 +25,10 @@ default_stylesheet = [
     {
         'selector': 'node:selected',
         'style': {
-            'background-color': 'red',
-            'width': '100px',
-            'height': '100px'
+            'border-width': '5',
+            'border-color': 'yellow'
         }
-    },
+    }
 ]
 
 
