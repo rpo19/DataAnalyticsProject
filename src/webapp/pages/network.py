@@ -63,12 +63,18 @@ network_layout = [
         
     ], className="network-menu-container zan-box-shadow flex-column"),
     html.Div(children=[
+        html.Button(id='show-central', n_clicks=0, children=[
+                        html.I('my_location', className='material-icons-round')
+                    ], className='central-node-button zan-box-shadow disp-flex flex-center justify-center'),
         html.Div(children=[
-            html.Div('Graph stats', className='subtitle'),
-            html.Div(id='wordcloud-output', className='disp-flex flex-center', style={'position': 'relative', 'marginLeft': 'auto'})
-        ], className='flex-row subtitle mb-10'),
-        html.Div(id='stats-output', className='flex-column')
-    ], className="network-stats-container zan-box-shadow flex-column"),
+            html.Div(children=[
+                html.Div('Graph stats', className='subtitle'),
+                html.Div(id='wordcloud-output', className='disp-flex flex-center', style={'position': 'relative', 'marginLeft': 'auto'})
+            ], className='flex-row subtitle mb-10'),
+            html.Div(id='stats-output', className='flex-column')
+        ], className="net-stats-content zan-box-shadow flex-column"),
+    ], className='network-stats-container flex-column'),
+
     html.Div(children=[
         html.Div(children=[
             html.I('help_outline', className='material-icons-round', style={'zIndex': '20'}),

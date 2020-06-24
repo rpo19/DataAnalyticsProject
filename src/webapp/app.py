@@ -121,7 +121,8 @@ def display_confirm(btnGiant):
 @app.callback(
     [dash.dependencies.Output('network-output', 'children'),
     dash.dependencies.Output('stats-output', 'children'),
-    dash.dependencies.Output('wordcloud-output', 'children')],
+    dash.dependencies.Output('wordcloud-output', 'children'),
+    dash.dependencies.Output('show-central', 'style')],
     [Input('confirm', 'submit_n_clicks'),
     dash.dependencies.Input('dropComm', 'value')])
 def update_output(submit_n_clicks, value):
@@ -153,7 +154,8 @@ def update_output(submit_n_clicks, value):
                         html.Div(children=[
                             html.Img(src='data:image/png;base64,{0}'.format(b64_image))
                         ], className='wordcloud-container zan-box-shadow'),
-                    ], className='disp-flex flex-center justify-center icon-wordcloud-wrapper')
+                    ], className='disp-flex flex-center justify-center icon-wordcloud-wrapper'),
+                    {'visibility': 'visible'}
                     ]
         else:
             return [html.Div(children=[
@@ -166,7 +168,7 @@ def update_output(submit_n_clicks, value):
                 html.Div('N. of categories: 37'),
                 html.Div('N. of communities: 1064'),
                 html.Div('N. of conn. cmps: 962'),
-            ], className='flex-column'), '']
+            ], className='flex-column'), '', {'visibility': 'hidden'}]
     else:
         if submit_n_clicks:
             graphData = readGraph('giantComponent.cyjs')
@@ -183,7 +185,7 @@ def update_output(submit_n_clicks, value):
                 html.Div('N. of categories: 37'),
                 html.Div('N. of communities: 1064'),
                 html.Div('N. of conn. cmps: 962'),
-            ], className='flex-column'), '']
+            ], className='flex-column'), '', {'visibility': 'hidden'}]
         else:
             return [html.Div(children=[
                 html.Div('Choose a network to display', className='mb-10'),
@@ -195,19 +197,42 @@ def update_output(submit_n_clicks, value):
                 html.Div('N. of categories: 37'),
                 html.Div('N. of communities: 1064'),
                 html.Div('N. of conn. cmps: 962'),
-            ], className='flex-column'), '']
+            ], className='flex-column'), '', {'visibility': 'hidden'}]
             
 
 @app.callback(dash.dependencies.Output('cytoscape', 'stylesheet'),
     [dash.dependencies.Input('radioColor', 'value'),
-    dash.dependencies.Input('dropSize', 'value')])
-def update_stylesheet(value, size):
+    dash.dependencies.Input('dropSize', 'value'),
+    dash.dependencies.Input('show-central', 'n_clicks'),
+    dash.dependencies.Input('dropComm', 'value'),
+    dash.dependencies.Input('confirm', 'submit_n_clicks')])
+def update_stylesheet(value, size, n_clicks, dropComm, submit_n_clicks):
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if n_clicks is not None:
+        if 'show-central' in changed_id and n_clicks > 0:
+            central_styles = [
+                {
+                    'selector': '[centralNode = 1]',
+                    'style': {
+                        'shape': 'star',
+                    }
+                },
+                {
+                    'selector': '[centralNode =0]',
+                    'style': {
+                        'opacity': '0.5'
+                    }
+                }
+            ]
+        else:
+            central_styles = []
     nodeSize = ''
     if size == 'default':
-        nodeSize = '20'
-    else:
+        nodeSize = '40'
+    elif size == 'degree':
         nodeSize = 'data(nodeSize)'
+    else:
+        nodeSize = '40'
     if value is None:
         value = ''
     
@@ -220,8 +245,9 @@ def update_stylesheet(value, size):
                     'height': nodeSize
                 }
             }
-    ]    
-    return default_stylesheet + additional_styles
+    ]
+    custom_style = additional_styles + central_styles
+    return default_stylesheet + custom_style
 
 
 @app.callback(Output('node-output', 'children'),

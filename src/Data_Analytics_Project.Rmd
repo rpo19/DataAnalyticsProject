@@ -1032,12 +1032,12 @@ nx.number_connected_components(full_graph)
 ```
 
 ```{python}
-def readGraph(network):
+def readGraph(network, i):
     with open ('../networkData/' + network, encoding='cp850') as prova:
         json_prova = json.load(prova)
         nodes = json_prova['elements']['nodes']
         edges = json_prova['elements']['edges']
-    addFieldsToNodes(nodes)
+    addFieldsToNodes(nodes, i)
     net = addEdges(nodes, edges)    
     return net
 ```
@@ -1054,7 +1054,7 @@ def addEdges(nodes, edges):
 ```
 
 ```{python}
-def addFieldsToNodes(nodes):
+def addFieldsToNodes(nodes, i):
     for element in nodes:
         elementId = element['data']['name']
         category = element['data']['category']
@@ -1065,7 +1065,7 @@ def addFieldsToNodes(nodes):
         else:
             element['data']['commColor'] = communitiesDf.loc[communitiesDf['community'] == community]['color'].values[0]
         element['data']['nodeSize'] = int(element['data']['Degree']) * 10
-        if elementId == communities_stats.iloc[0]['max_degree_id']:
+        if elementId == communities_stats.iloc[i]['max_degree_id']:
             element['data']['centralNode'] = 1
         else:
             element['data']['centralNode'] = 0
@@ -1089,11 +1089,17 @@ communitiesDf
 ```
 
 ```{python}
-net = readGraph('giantComponent.cyjs')
+net = readGraph('giantComponent.cyjs', 0)
 ```
 
 ```{python}
 writeGraph(net, 'giantComponent.cyjs')
+```
+
+```{python}
+for i in range(0,11):
+    net = readGraph('community' + str(i+1) +'.cyjs', i)
+    writeGraph(net, 'community'+str(i+1)+'.cyjs')
 ```
 
 ```{python}

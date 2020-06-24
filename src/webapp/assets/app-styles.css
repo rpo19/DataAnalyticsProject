@@ -325,12 +325,31 @@ button {
     position: absolute;
     bottom: 20px;
     left: 20px;
-    width: 250px;
-    padding: 10px;
-    border-radius: 6px;
-    background: white;
+    width: 300px;
     z-index: 10;
     animation: slideInFromLeft 0.5s ease-out ;
+}
+
+.net-stats-content {
+    border-radius: 6px;
+    padding: 10px;
+    background: white;
+}
+
+.central-node-button {
+    outline: none;
+    border: none;
+    background: white;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    color: rgba(0,0,0,0.87);
+    cursor: pointer;
+}
+
+.central-node-button:hover > i {
+    color: #C92F95;
 }
 
 .network-menu-container {
@@ -441,6 +460,7 @@ button {
 }
 
 .info-wrapper > i {
+    color: rgba(0,0,0,0.87);
     cursor: pointer;
     transition: all 150ms ease-out;
 }
