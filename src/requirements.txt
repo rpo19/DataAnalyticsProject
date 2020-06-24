@@ -4,3 +4,5 @@ nltk==3.5
 #spacy==2.2.4
 matplotlib==3.2.1
 seaborn==0.10.1
+gensim
+pyLDAvis

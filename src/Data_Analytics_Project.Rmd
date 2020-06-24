@@ -95,34 +95,25 @@ dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)
 ```
 
 ```{python}
-'''dataReviews = dataReviews.loc[dataReviews["verified"] == True]'''
-```
-
-```{python}
-'''len(dataReviews.loc[dataReviews["verified"] == False])'''
-```
-
-```{python}
-'''len(dataReviews.loc[dataReviews["helpful"] == 0]) - len(dataReviews.loc[dataReviews["helpful"] != 0])'''
-```
-
-```{python}
-'''dataReviews = dataReviews.loc[dataReviews["helpful"] != 0]
-dataReviews'''
+def getDataReviewsReduced():
+    try:
+        dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+    except FileNotFoundError:
+        dataReviewsReduced = dataReviews.loc[dataReviews["verified"] == True]
+        dataReviewsReduced = dataReviewsReduced.loc[dataReviews["helpful"] != 0]
+        dataReviewsReduced.to_csv("../data/dati_ridotti.csv", sep=",")
+    return dataReviewsReduced
+dataReviewsReduced = getDataReviewsReduced()
 ```
 
 ### Dati filtrati (vedi sopra)
 
 ```{python}
-dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+dataReviewsReduced
 ```
 
 ```{python}
-dataReviews
-```
-
-```{python}
-counts = dataReviews["rating"].value_counts()
+counts = dataReviewsReduced["rating"].value_counts()
 ```
 
 ```{python}
@@ -144,26 +135,26 @@ plt.show()
 ```
 
 ```{python}
-print("Proportion of review with score=1: {}%".format(len(dataReviews[dataReviews.rating == 1]) / len(dataReviews)*100))
-print("Proportion of review with score=2: {}%".format(len(dataReviews[dataReviews.rating == 2]) / len(dataReviews)*100))
-print("Proportion of review with score=3: {}%".format(len(dataReviews[dataReviews.rating == 3]) / len(dataReviews)*100))
-print("Proportion of review with score=4: {}%".format(len(dataReviews[dataReviews.rating == 4]) / len(dataReviews)*100))
-print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReviews.rating == 5]) / len(dataReviews)*100))
+print("Proportion of review with score=1: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 1]) / len(dataReviewsReduced)*100))
+print("Proportion of review with score=2: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 2]) / len(dataReviewsReduced)*100))
+print("Proportion of review with score=3: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 3]) / len(dataReviewsReduced)*100))
+print("Proportion of review with score=4: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 4]) / len(dataReviewsReduced)*100))
+print("Proportion of review with score=5: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 5]) / len(dataReviewsReduced)*100))
 ```
 
 ```{python}
 # recensioni vuote
-dataReviews[dataReviews["body"].str.len() == 0]
+dataReviewsReduced[dataReviewsReduced["body"].str.len() == 0]
 ```
 
 ```{python}
-dataReviews.loc[dataReviews['rating'] == 3 , 'polarity'] = 'neutral'
-dataReviews.loc[dataReviews['rating'] > 3 , 'polarity'] = 'positive'
-dataReviews.loc[dataReviews['rating'] < 3 , 'polarity'] = 'negative'
+dataReviewsReduced.loc[dataReviewsReduced['rating'] == 3 , 'polarity'] = 'neutral'
+dataReviewsReduced.loc[dataReviewsReduced['rating'] > 3 , 'polarity'] = 'positive'
+dataReviewsReduced.loc[dataReviewsReduced['rating'] < 3 , 'polarity'] = 'negative'
 ```
 
 ```{python}
-counts = dataReviews["polarity"].value_counts()
+counts = dataReviewsReduced["polarity"].value_counts()
 fig = plt.figure(figsize=(18,6))
 sns.barplot(x=counts._index, y=counts.values)
 plt.title("Rating distribution")
@@ -182,7 +173,7 @@ def undersampling(df):
 ```
 
 ```{python}
-new_dataReviews = undersampling(dataReviews)
+new_dataReviews = undersampling(dataReviewsReduced)
 ```
 
 ```{python}
@@ -217,9 +208,10 @@ def plot_common_tokens(tokens, title, n=20):
 ```{python}
 def word_Cloud(sentences):
     flat_sentences = flat_list(sentences)
-    unique_string=(" ").join(flat_sentences)
+    counter = Counter(flat_sentences)
+    cdict = dict(counter.most_common(50))
 
-    wordcloud = WordCloud(background_color="white").generate(unique_string)
+    wordcloud = WordCloud(background_color="white").generate_from_frequencies(cdict)
     plt.figure(figsize = (10, 8), facecolor = None) 
     plt.imshow(wordcloud, interpolation='bilinear')
     plt.axis("off")
@@ -276,11 +268,19 @@ new_dataReviews["cleaned"] = new_dataReviews["cleaned"].progress_apply(lambda se
 ```
 
 ```{python}
+# tutto il processing si può fare in un unico loop TODO
+```
+
+```{python}
 #new_dataReviews.to_csv("dati_puliti.csv")
 ```
 
 ```{python}
 plot_common_tokens(new_dataReviews['cleaned'],'Most Common Tokens used in Reviews')
+```
+
+```{python}
+len(new_dataReviews["cleaned"])
 ```
 
 ```{python}
@@ -306,7 +306,7 @@ def stemming_token(sentence,stemmer):
 ```
 
 ```{python}
-new_dataReviews["stemming"]=[stemming_token(row["cleaned"], stemmer) for _, row in tqdm(new_dataReviews.iterrows())]
+new_dataReviews["stemming"] = new_dataReviews["cleaned"].progress_apply(lambda x: stemming_token(x, stemmer))
 ```
 
 ```{python}
@@ -339,24 +339,20 @@ len(new_dataReviews)
 ### CountVectorizer
 
 ```{python}
-count_vect = CountVectorizer(stop_words=None, lowercase=True)
-#lowercase = true -> Convert all characters to lowercase before tokenizing.
-#stop_words = None -> If None, no stop words will be used
-bow = count_vect.fit(new_dataReviews['stemming'].apply(lambda x: " ".join(x)))
-```
-
-```{python}
-import pickle
-with open('../model/bow.bin', 'wb') as f:
-    pickle.dump(bow, f, pickle.HIGHEST_PROTOCOL)
-#s = pickle.dumps(model)
-```
-
-```{python}
-with open('../model/bow.bin', 'rb') as f:
-    # The protocol version used is detected automatically, so we do not
-    # have to specify it.
-    bow = pickle.load(f)
+try:
+    with open('../model/bow.bin', 'rb') as f:
+        # The protocol version used is detected automatically, so we do not
+        # have to specify it.
+        bow = pickle.load(f)
+except FileNotFoundError:
+    count_vect = CountVectorizer(stop_words=None, lowercase=True)
+    #lowercase = true -> Convert all characters to lowercase before tokenizing.
+    #stop_words = None -> If None, no stop words will be used
+    bow = count_vect.fit(new_dataReviews['stemming'].apply(lambda x: " ".join(x)))
+    
+    with open('../model/bow.bin', 'wb') as f:
+        pickle.dump(bow, f, pickle.HIGHEST_PROTOCOL)
+        #s = pickle.dumps(model)
 ```
 
 ```{python}
@@ -383,57 +379,28 @@ print("y train distribution:\n",y_test.value_counts())
 ```
 
 ```{python}
-model = LogisticRegression()
-model.fit(bow.transform(X_train), y_train)
-```
+def train_and_evaluate_model():
+    model = LogisticRegression()
+    model.fit(bow.transform(X_train), y_train)
 
-```{python}
-predictions = model.predict(bow.transform(X_test))
-```
+    predictions = model.predict(bow.transform(X_test))
+    print("predictions:\n{}".format(predictions))
 
-```{python}
-predictions
-```
+    my_accuracy_score = accuracy_score(y_test, predictions)
+    print("accuracy_score:\n{}".format(my_accuracy_score))
 
-```{python}
-from sklearn.metrics import accuracy_score, confusion_matrix
-accuracy_score(y_test, predictions)
-```
+    cmatrix = confusion_matrix(y_test, predictions)
+    print("confusion matrix:\n{}".format(cmatrix))
 
-```{python}
-confusion_matrix(y_test, predictions)
-```
+    scores = cross_val_score(model, bow.transform(new_dataReviews['stemming'].apply(lambda x: " ".join(x))), new_dataReviews['polarity'], cv=10)
+    print("cross_val_score:\n{}".format(scores))
+    print("Accuracy cross_val_scores: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
 
-```{python}
-scores = cross_val_score(model, bow.transform(new_dataReviews['stemming'].apply(lambda x: " ".join(x))), new_dataReviews['polarity'], cv=10)
-```
-
-```{python}
-scores
-```
-
-```{python}
-print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2)) 
-```
-
-```{python}
-scoring = ['precision_macro', 'recall_macro']
-scores = cross_validate(model, bow.transform(new_dataReviews['stemming'].apply(lambda x: " ".join(x))), new_dataReviews['polarity'], scoring=scoring,
-                        cv=10, return_train_score=False)
-```
-
-```{python}
-scores
-```
-
-```{python}
-print("Accuracy: %0.2f (+/- %0.2f)" % (scores['test_precision_macro'].mean(), scores['test_precision_macro'].std() * 2)) 
-```
-
-```{python}
-# for save model in file.bin
-'''with open('../model/model2.bin', 'wb') as f:
-    pickle.dump(model, f, pickle.HIGHEST_PROTOCOL)'''
+    scoring = ['precision_macro', 'recall_macro']
+    scores = cross_validate(model, bow.transform(new_dataReviews['stemming'].apply(lambda x: " ".join(x))), new_dataReviews['polarity'], scoring=scoring,
+                            cv=10, return_train_score=False)
+    print("cross_validate with scoring = {}:\n{}".format(scoring, scores))
+    print("Accuracy cross_validate with scoring ...: %0.2f (+/- %0.2f)" % (scores['test_precision_macro'].mean(), scores['test_precision_macro'].std() * 2)) 
 ```
 
 ### Use model with costum sentences
@@ -459,10 +426,16 @@ clean_sentence(sentence)
 
 ```{python}
 # codice per caricare il modello per convertire frasi in array
-with open('../model/bow.bin', 'rb') as f:
-    # The protocol version used is detected automatically, so we do not
-    # have to specify it.
-    bow = pickle.load(f)
+try:
+    with open('../model/bow.bin', 'rb') as f:
+        # The protocol version used is detected automatically, so we do not
+        # have to specify it.
+        bow = pickle.load(f)
+except FileNotFoundError:
+    # to save model in file.bin
+    train_and_evaluate_model()
+    with open('../model/model2.bin', 'wb') as f:
+        pickle.dump(model, f, pickle.HIGHEST_PROTOCOL)
 ```
 
 ```{python}
@@ -470,23 +443,7 @@ print(bow.transform([clean_sentence(sentence)]))
 ```
 
 ```{python}
-# codice per caricare il modello di regressione logistica
-with open('../model/model.bin', 'rb') as f:
-    # The protocol version used is detected automatically, so we do not
-    # have to specify it.
-    model = pickle.load(f)
-```
-
-```{python}
 model.predict(bow.transform([clean_sentence(sentence)]))
-```
-
-```{python}
-#for load model
-'''with open('../model/model.bin', 'rb') as f:
-    # The protocol version used is detected automatically, so we do not
-    # have to specify it.
-    model = pickle.load(f)'''
 ```
 
 ### LDA
@@ -642,12 +599,14 @@ ntopics
 pyLDAvis.enable_notebook()
 LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
 LDAvis_prepared
+# mi ha dato eccezione
 ```
 
 ### Sentimenti recensioni neutre
 
 ```{python}
-dataReviews_neutre = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+#dataReviews_neutre = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+dataReviews_neutre = dataReviewsReduced if dataReviewsReduced is not None else getDataReviewsReduced()
 ```
 
 ```{python}
@@ -679,7 +638,8 @@ dataReviews_neutre["polarity"].value_counts().plot(kind="bar")
 ### Prodotti nel tempo
 
 ```{python}
-dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+#dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+dataReviews_neutre = dataReviewsReduced if dataReviewsReduced is not None else getDataReviewsReduced()
 ```
 
 ```{python}
@@ -790,97 +750,4 @@ dataReviews_prodotti_month.loc["B00G9WHN12"].plot()
 
 ```{python}
 dataReviews_prodotti_month.to_csv("../data/datarevies_prodotti_month.csv")
-```
-
-```{python}
-[coeffs for i in dataReviews_prodotti_month.index.get_level_values(0).value_counts().index coeffs, line = trendline(dataReviews_prodotti_month.loc[i]["polarityNum"])]
-```
-
-```{python}
-dataReviews_prodotti_month
-```
-
-```{python}
-[1] * 5
-```
-
-```{python}
-dataReviews_prodotti_month.apply(trendline)
-```
-
-```{python}
-[1,2,3,4][-2:]
-```
-
-```{python}
-myp
-```
-
-```{python}
-trendline(myp["rating"])
-```
-
-```{python}
-coeffs[-2]x + coeffs[-1] = y
-```
-
-```{python}
-myp["trend"]=[-0.00372411 * x + 0.93858209 for x in range(0,65)]
-```
-
-```{python}
-myp = dataReviews_prodotti_month.loc["B00G9WHN12"]
-```
-
-```{python}
-myp.plot()
-```
-
-```{python}
-len(dataReviews_prodotti_month["rating"])
-```
-
-```{python}
-myp.plot()
-```
-
-```{python}
-trendline(range(0,len(myp.index)), myp["polarityNum"], 1)
-```
-
-```{python}
-dataReviews_prodotti_month.apply(trendline, axis=1)
-```
-
-```{python}
-pd.concat([dataReviews_prodotti_month, dataReviews_prodotti_month_rat]).loc["B00G9WHN12"]
-```
-
-```{python}
-dataReviews_prodotti_month.loc["B00G9WHN12"]
-```
-
-```{python}
-dataReviews_prodotti_month_rat.loc["B00G9WHN12"]
-```
-
-```{python}
-dataReviews_prodotti_month.to_frame().loc["B00G9WHN12"].plot()
-```
-
-```{python}
-dataReviews_prodotto_month.plot()
-```
-
-```{python}
-dataReviews_prodotto_month_rat
-```
-
-```{python}
-dataReviews_prodotto_month_rat
-```
-
-```{python}
-import json
-dataReviews_prodotto_month_rat.to_json()
 ```
