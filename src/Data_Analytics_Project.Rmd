@@ -978,7 +978,7 @@ def generateProductsSampleCsv():
     df = pd.DataFrame(columns=data.columns)
     for index in range(1,11):
         df.loc[index] = data.iloc[randint(1,10000)]
-    df.to_csv('../dataApp/sampleProducts.csv', columns=["_id", "title", "category", "price", "avg_rating", "pictures", "questions_number"], sep='\t', index=False)
+    df.to_csv('../dataApp/sampleProducts.csv', columns=["_id", "title", "category", "price", "avg_rating", "pictures", "questions_number", "reviews_number"], sep='\t', index=False)
 
 def generateCsvRatings():
     dic = {}

@@ -489,6 +489,94 @@ button {
     color: #C92F95
 }
 
+.emoji-icon {
+    width: 80px;
+    height: 80px;
+    opacity: 0;
+}
+
+#happy {
+    animation: fadeIn 0.6s ease-out;
+    animation-fill-mode: forwards;
+}
+
+#sad {
+    animation: fadeIn 0.6s ease-out;
+    animation-delay: 0.6s;
+    animation-fill-mode: forwards;
+}
+
+#angry {
+    animation: fadeIn 0.6s ease-out;
+    animation-delay: 1.2s;
+    animation-fill-mode: forwards;
+}
+
+.tab {
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 4px 16px;
+    border: none !important;
+}
+
+.tab--selected {
+    border-bottom: 2px solid #1975FA !important;
+}
+
+#review-input {
+    width: 60%;
+    font-size: 24px;
+    outline: none;
+    border: none;
+    border: 6px;
+    padding: 10px;
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 4px 16px;
+}
+
+.predict-button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    background: #C92F95;
+    color: white;
+    font-size: 18px;
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 24px;
+    transition: all 150ms ease-out;
+}
+
+.predict-button:hover {
+    box-shadow: rgba(0, 0, 0, 0.12) 0px 10px 60px;
+}
+
+.product-card-sent {
+    display: flex;
+    flex-direction: column;
+    width: 200px;
+    height: 200px;
+    background: white;
+    border-radius: 6px;
+    margin-right: 20px;
+    border: none;
+    outline: none;
+}
+
+.img-prod-sent {
+    width: 100px;
+    height: 100px;
+    padding: 10px;
+}
+
+
+.count-stats-neutral {
+    background: white;
+    border-radius: 6px;
+    height: 100px;
+    width: 150px;
+}
+
+#dropTimeSeries {
+    width: 50% !important;
+}
 
 
 @media only screen and (max-width: 1024px) {
@@ -521,6 +609,15 @@ button {
     }
     100% {
       transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
       opacity: 1;
     }
   }

@@ -2,12 +2,97 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
+import pickle
+import nltk
+import string
+from nltk.stem.snowball import SnowballStemmer
+from nltk.tokenize import word_tokenize
+from pages.exploration import dfSampleProducts
+import plotly.express as px
 
-communities_stats = pd.read_csv("../dataApp/communities_stats.csv", sep='\t')
+dfNeutral = pd.read_csv('../dataApp/neutralReviews.csv')
+fig = px.pie(dfNeutral, values='count', names='polarity', color_discrete_sequence=['#33A352','#E44133'])
 
-b64_image = communities_stats.iloc[0]["wordclouds"]
+def readBow():
+    with open('./model/bow.bin', 'rb') as f:
+        return pickle.load(f)
+def readModel():
+    with open('./model/model.bin', 'rb') as f:
+        return pickle.load(f)
 
-sentiment_layout = [html.Div(children=[
-    html.H1(children='Sentiment'),
-    html.Img(src='data:image/png;base64,{0}'.format(b64_image))
-])]
+def stemming_token(sentence,stemmer):
+    stem = []
+    for elem in sentence:
+        stem.append(stemmer.stem(elem))
+    return stem
+
+def clean_sentence(sentence):
+    tokens = word_tokenize(sentence)
+    tokens_clean = []
+    for word in tokens:
+        if word.lower() not in stop_words and word.lower() not in punctuation and not word.isnumeric() and len(word)> 1:
+            tokens_clean.append(stemmer.stem(word))
+    return ' '.join(tokens_clean)
+
+stop_words=nltk.corpus.stopwords.words('italian')
+punctuation = string.punctuation
+punctuation = punctuation + "..."+ "''" + "``" + "--"+ ".."
+stemmer = SnowballStemmer("italian")
+bow = readBow()
+model = readModel()
+
+sentiment_layout = [
+    html.Div(children=[
+        html.Div(children='Sentiment Anlysis', className='title text-center', style={'marginBottom': '80px'}),
+        html.Div(children=[
+            html.Img(id='happy', src='/assets/happy.png', className='emoji-icon', style={'marginLeft': 'auto'}),
+            html.Img(id='sad', src='/assets/sad.png', className='emoji-icon', style={'marginLeft': '60px', 'marginRight': '60px'}),
+            html.Img(id='angry', src='/assets/angry.png', className='emoji-icon', style={'marginRight': 'auto'}),
+        ], className='flex-row', style={'marginBottom': '24px'}),
+        # dcc.Tabs(id='tabs-sentiment', value='supervised', children=[
+        #     dcc.Tab(label='Supervised Sentiment', value='supervised'),
+        #     dcc.Tab(label='Tab two', value='tab-2'),
+        # ]),
+        html.Div(children=[
+        html.Div('Write a review to predict its sentiment', className='subtitle', style={'marginTop':'60px', 'marginBottom':'60px'}),
+        dcc.Input(
+            id='review-input',
+            type='text',
+            placeholder='Write here your review...'
+        ),
+        html.Button(id='predict-review', n_clicks=0, children=[
+            'Predict Sentiment'
+        ], className='predict-button zan-box-shadow', style={'marginBottom': '80px'}),
+        html.Div(id='predicted-value-output', className='subtitle'),
+        html.Div(children=[
+            html.Div('Prediction on reviews rated', className='subtitle', style={'marginRight':'10px'}),
+            html.I('grade', className='material-icons-round', style={'fontSize': '30px','color': '#FFDA6C'}),
+            html.I('grade', className='material-icons-round', style={'fontSize': '30px','color': '#FFDA6C'}),
+            html.I('grade', className='material-icons-round', style={'fontSize': '30px','color': '#FFDA6C'})
+        ], className='flex-row flex-center', style={'marginTop':'120px', 'marginBottom':'20px'}),
+        html.Div(children=[
+            'After training the model on positive and negative reviews we wanted',
+            html.Br(),
+            'to see if reviews rated three stars were positive, negative or, in fact, neutral.',
+        ], className='text-center', style={'marginBottom': '80px'}),
+        dcc.Graph(figure=fig),
+        html.Div(children=[
+            'Time Series',
+        ], className='subtitle', style={'marginTop': '80px', 'marginBottom':'20px'}),
+        html.Div(children=[
+            'Select a product to analyze its reviews trend and determine if it is positive or negative.',
+        ], className='text-center', style={'marginBottom':'20px'}),
+        dcc.Dropdown(
+            id='dropTimeSeries',
+            options=[
+                {'label': dfSampleProducts.iloc[0]['title'][0:50], 'value': '0'},
+                {'label': dfSampleProducts.iloc[1]['title'][0:50], 'value': '1'},
+                {'label': dfSampleProducts.iloc[2]['title'][0:50], 'value': '2'},
+                {'label': dfSampleProducts.iloc[3]['title'][0:50], 'value': '3'},
+            ]
+        ),
+        html.Div(id='prod-series-output'),
+    ], className='flex-column flex-center'),
+    html.Div(id='tabs-sentiment-output')
+    ], className='p-20')
+]

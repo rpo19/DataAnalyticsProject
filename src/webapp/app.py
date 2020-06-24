@@ -2,9 +2,9 @@
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
-from pages.exploration import exploration_layout, products_layout, sample_products_list, reviews_layout, histCategories, histRating, histPrice
+from pages.exploration import exploration_layout, products_layout, sample_products_list, reviews_layout, histCategories, histRating, histPrice, dfSampleProducts
 from pages.network import network_layout, readGraph, communities_stats
-from pages.sentiment import sentiment_layout
+from pages.sentiment import sentiment_layout, clean_sentence, bow, model
 from pages.about import about_layout
 from dash.dependencies import Input, Output
 import dash_cytoscape as cyto
@@ -263,6 +263,33 @@ def displayTapNodeData(data):
                     
                 ], className=' flex-column')
             ], className='node-info-content flex-column zan-box-shadow'),
+
+@app.callback(dash.dependencies.Output('predicted-value-output','children'),
+                [Input('predict-review', 'n_clicks')], 
+                [dash.dependencies.State('review-input', 'value')], 
+                )
+def callback(clicks, input_value):
+    if clicks is not None and clicks > 0 and input_value is not None:
+        text = clean_sentence(input_value)
+        predict_value = model.predict(bow.transform([text]))[0].upper()
+        if predict_value == 'NEGATIVE':
+            return html.Div(children=[
+                    html.Div(predict_value, style={'marginRight': '20px'}),
+                    html.I('sentiment_dissatisfied', className='material-icons-round', style={'fontSize': '35px', 'color': 'red'})
+                ], className='flex-row')
+        else:
+            return html.Div(children=[
+                    html.Div(predict_value, style={'marginRight': '20px'}),
+                    html.I('sentiment_satisfied', className='material-icons-round', style={'fontSize': '35px', 'color': 'green'})
+                ], className='flex-row flex-center')
+
+
+@app.callback(Output('prod-series-output', 'children'),
+              [Input('dropTimeSeries', 'value')])
+def render_content(value):
+    if value is not None:
+        return html.Div('Review Number: ' + str(dfSampleProducts.iloc[int(value)]['reviews_number']), className='subtitle zan-box-shadow', style={'marginTop': '24px', 'padding': '10px', 'borderRadius': '6px'})
+
 
 if __name__ == '__main__':
     app.run_server(debug=True)
