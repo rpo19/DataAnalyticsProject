@@ -11,3 +11,5 @@ python-louvain==0.14
 dash==1.13.2
 dash-cytoscape==0.0.5
 sklearn
+gensim
+pyLDAvis
