@@ -1,25 +1,32 @@
 \section{Sentiment Analysis recensioni}\label{SentimentAnalysis}
-%TODO: dire subito bene gli obiettivi e cosa sarà fatto in generale
-%TODO: dire che consideriamo positive 4-5 e negative 1-2... lo direi già qui perchè poi serve in entrambi gli approcci
+La Sentiment Analysis sulle recensioni è stata affrontata sotto diversi aspetti per raggiungere tre obiettivi principali. Il primo obiettivo è stato quello di verificare la corrispondenza tra la positività individuata dal numero di stelle e la polarità ottenuta tramite un approccio basato sul lessico. Il secondo obiettivo è stato quello di capire quale fosse il sentimento medio delle 3 stelle, le quali dovrebbero corrispondere ad un voto neutro. Questo obiettivo nasce dal fatto che una recensione a 3 stelle, seppur neutra, possa presentare delle sfumature più tendenti al positivo o negativo (es: "Prodotto di qualità mediocre, ma per il prezzo che ha fa il suo lavoro... Consigliato per chi vuole spendere poco" e "Non è il massimo... ci sono alternative migliori sul mercato e non credo che lo ricomprerei." potrebbero essere recensioni da 3 stelle che esprimono sentimento diverso). Infine, come ultimo obiettivo è stato reputato interessente lo studio dell'evoluzione nel tempo del sentimento, rapportato anche all'evoluzione del numero di stelle, di alcuni prodotti d'esempio. 
+\\\\
+Nel seguito viene presentato il lavoro attraverso due approcci in quanto il primo (\ref{ApproccioLexiconBased}), basato sul lessico, ha portato a scarsi risultati ed è stato surclassato dall'approccio basato sul machine learning (\ref{ApproccioMachineLearning}). % NON MI PIACE STA FRASE, NON SAPEVO COME CHIUDERE INTRO E PASSARE ALLE SEZIONE SUCCESSIVE
+In entrambi gli approcci l'attributo della recensione su cui viene condotta l'analisi è quello del \textit{body}. È stato inoltre deciso di etichettare come positive le recensioni con \textit{rating} > 3 e come negative quelle con \textit{rating} < 3 per poter dare una stima dell'accuratezza dei risultati ottenuti.
 
-\subsection{Approccio Lexicon Based}
-%TODO: dire brevemente cos'è sentix, ha diversi score, restituisce polarità [-1,1]...  mettiamo il riferimento e bona
 
-%TODO: testato su campione di 1000 positive e 1000 negative con scarsi risultati... quasi sempre valori positivi
-    % mostrare accuratezza e magari l'andamento rating vs polarity su un paio di prodotti
+\subsection{Approccio Lexicon Based}\ref{ApproccioLexiconBased}
+La lingua italiana del dataset porta ad avere una cerchia più ristretta di alternative per effettuare una Sentiment Analysis. \\
+L'approccio che è stato adottato fa affidamento al lessico di Sentix\footnote{\url{http://valeriobasile.github.io/twita/sentix.html}}, grazie al quale è stato possibile assegnare alle recensioni una polarità ottenuta dalla somma delle singole polarità delle parole che le compongono. %TODO: dire brevemente cos'è sentix, ha diversi score, restituisce polarità [-1,1]...  mettiamo il riferimento e bona????????
+\\\\
+Questo metodo è stato testato su un campione casuale di 1000 recensioni etichettate come positive e 1000 come negative. Le recensioni in questione sono state estratte da un sottoinsieme attendibile, ottenuto tramite l'intersezione di quelle di acquisti verificati (\textit{verified = true}) e di quelle considerate utili da almeno un utente (\textit{helpful > 1}). Considerando come positive le recensioni con polarità > 0 e come negative quelle con polarità < 0, senza quindi considerare un range di neutre, si ottiene un'accuratezza XXX sulle positive e XXX sulle negative. %FORSE è PIU CORRETTO INCLUDERE LO 0 NELL'ESTREMO NEGATIVO???
+La distribuzione delle polarità ottenute si dimostra .... 
+%TODO: mostrare accuratezza e magari figura con l'andamento rating vs polarity su un paio di prodotti?
+%TODO: mettere figura distribuzione valori???
+\\\\
+Gli scarsi risultati hanno portato a scartare l'approccio e a prenderne in considerazione uno alternativo per poter perseguire gli obiettivi preposti sulla tendenza di utilizzo delle 3 stelle e sull'andamento della polarità nel tempo.
 
-%TODO: fa schifo -> non adatto per capire utilizzo medio delle 3 stelle (già descritto sopra come obiettivo...)
+\subsection{Approccio Machine Learning}\label{ApproccioMachineLearning}
+%TODO: dire che si considera il binario, GABRI the machine learner se ha in mente premesse da fare le facci lei
+%TODO: dire modello utilizzato e con che parametri eventualmente
 
-\subsection{Approccio Machine Learning}
-%TODO: dire che si considera il binario, GABRI the machine learner se ha in mente premesse da fare le faccia
-
-%TODO: dire che avendo a disposizione un grande numero di recensioni decidiamo che è possiamo usare solo quelle filtrate verified e helpful > 1 per addestrare bene e in modo piu AFFIDABILE il modello
-
+%TODO: dire che avendo a disposizione un grande numero di recensioni decidiamo che possiamo usare solo quelle filtrate verified e helpful > 1 per addestrare bene e in modo piu AFFIDABILE il modello
+Anche in questo caso, avendo a disposizione un numero di recensioni molto elevato, si è deciso di utilizzare il sottoinsieme filtrato su quelle che sono sia verificate che considerate utili da almeno un utente in quanto considerate più affidabili per addestrare il modello. 
 %AAAAAAAAAAAAAAAA: da qui in poi i risultati che mostriamo dovremmo tirarli fuori dalle recensioni non filtrate
 %TODO: confrontare andamento raggruppato per mese di qualche prodotto significativo (significativo = ha tante recensioni, quindi fa un grafico piu realistico) -> molto simili...
 %TODO: calcolare un eventuale coefficiente di correlazioneee?
 
 %TODO: mostrare e discutere risultati ottenuti effettuando previsione sulle 3 stelle
 
-\subsection{Individuazione topics}
+\subsection{Individuazione topics} %FORSE NON è CORRETTO METTERLA SOTTO IL CAPITOLO SENTIMENT ANALYSIS???
 %TODO:  Montamagno king of LDA
