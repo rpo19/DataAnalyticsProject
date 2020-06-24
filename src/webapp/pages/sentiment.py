@@ -54,11 +54,13 @@ sentiment_layout = [
         #     dcc.Tab(label='Tab two', value='tab-2'),
         # ]),
         html.Div(children=[
-        html.Div('Write a review to predict its sentiment', className='subtitle', style={'marginTop':'60px', 'marginBottom':'60px'}),
+        html.Div('Write a review to predict its polarity', className='subtitle', style={'marginTop':'60px', 'marginBottom':'60px'}),
         dcc.Input(
             id='review-input',
             type='text',
-            placeholder='Write here your review...'
+            placeholder='Write here your review...',
+            autoComplete='off',
+            spellCheck='false'
         ),
         html.Button(id='predict-review', n_clicks=0, children=[
             'Predict Sentiment'
@@ -73,7 +75,7 @@ sentiment_layout = [
         html.Div(children=[
             'After training the model on positive and negative reviews we wanted',
             html.Br(),
-            'to see if reviews rated three stars were positive, negative or, in fact, neutral.',
+            'to see if reviews rated three stars were mostly positive, mostly negative or, in fact, neutral.',
         ], className='text-center', style={'marginBottom': '80px'}),
         dcc.Graph(figure=fig),
         html.Div(children=[
@@ -94,5 +96,5 @@ sentiment_layout = [
         html.Div(id='prod-series-output'),
     ], className='flex-column flex-center'),
     html.Div(id='tabs-sentiment-output')
-    ], className='p-20')
+    ], className='p-20', style={'paddingBottom':'100px'})
 ]
