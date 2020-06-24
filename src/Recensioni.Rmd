@@ -20,12 +20,11 @@ from nltk.tokenize import word_tokenize
 import itertools
 from collections import Counter
 import nltk
-
+from datetime import datetime
 
 import string
 from nltk import wordpunct_tokenize
 
-from wordcloud import WordCloud
 
 
 import re
@@ -53,30 +52,36 @@ for chunk in dataReviewsChunk:
 ```
 
 ```{python}
-chunk_list
-```
-
-```{python}
 dataReviews = pd.concat(chunk_list)
-```
-
-```{python}
-dataReviews
 ```
 
 ### Exploratory Data Analysis
 
 ```{python}
-print("Number of reviews:", len(dataReviews))
+print("Number of reviews not filtered:", len(dataReviews))
 ```
 
 ```{python}
-def convert_rating(rating):
-    return rating["$numberInt"]
+def convert_int_value(int_value):
+    return int_value["$numberInt"]
+```
+
+#### Reducing reviews
+
+```{python}
+dataReviews["rating"]=dataReviews["rating"].apply(convert_int_value).astype(int)
 ```
 
 ```{python}
-dataReviews["rating"]=dataReviews["rating"].apply(convert_rating).astype(int)
+dataReviews["helpful"]=dataReviews["helpful"].apply(convert_int_value).astype(int)
+```
+
+```{python}
+dataReviews = dataReviews[dataReviews.helpful != 0]
+```
+
+```{python}
+dataReviews = dataReviews[dataReviews.verified == True]
 ```
 
 ```{python}
@@ -84,7 +89,7 @@ counts = dataReviews["rating"].value_counts()
 ```
 
 ```{python}
-counts.values
+print("Reduced reviews distribution [5-1] stars:", counts.values)
 ```
 
 ```{python}
@@ -109,67 +114,152 @@ print("Proportion of review with score=4: {}%".format(len(dataReviews[dataReview
 print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReviews.rating == 5]) / len(dataReviews)*100))
 ```
 
+### Preparing dataset for sentiment analysis
+
 ```{python}
-from afinn import Afinn
+dataReviews = pd.read_csv('../data/dati_ridotti.csv', sep=',')
 ```
 
 ```{python}
-afinn = Afinn()
-#dataReviews['afinn'] = dataReviews["body"].apply(afinn.score)
+dataReviews_POS = pd.DataFrame(dataReviews[dataReviews.rating > 3].sample(1000))
+dataReviews_POS['target'] = 'POS'
+dataReviews_POS['polarity'] = 'None'
+
 ```
 
 ```{python}
-sub_data=dataReviews[:10000]
-sub_data['afinn'] = sub_data["body"].apply(afinn.score)
-sub_data
+dataReviews_NEG = pd.DataFrame(dataReviews[dataReviews.rating < 3].sample(1000))
+dataReviews_NEG['target'] = 'NEG'
+dataReviews_NEG['polarity'] = 'None'
 ```
 
 ```{python}
-def afinn_to_rating(score_afinn):
-    if(score_afinn >= 4 ):
-        return 5
-    elif (score_afinn>=2 and score_afinn<= 3):
-        return 4
-    elif (score_afinn >=-1 and score_afinn <= 1):
-        return 3
-    elif (score_afinn >=-3 and score_afinn <=-2):
-        return 2
-    else:
-        return 1
+dataReviews_NEUT = pd.DataFrame(dataReviews[dataReviews.rating == 3].sample(1000))
+dataReviews_NEUT['target'] = 'NEUT'
+dataReviews_NEUT['polarity'] = 'None'
 ```
 
 ```{python}
-sub_data["new_afinn"] = sub_data["afinn"].apply(afinn_to_rating)
-sub_data
+# export csv to do sentix in R
+dataReviews_POS.to_csv('../data/dataReviews_POS.csv', index=False, sep=',')
+dataReviews_NEG.to_csv('../data/dataReviews_NEG.csv', index=False, sep=',')
+dataReviews_NEUT.to_csv('../data/dataReviews_NEUT.csv', index=False, sep=',')
+```
+
+### Execute SentimentR.R
+
+```{python}
+# EXECUTE R CODE
+```
+
+### Read reviews polarized
+
+```{python}
+# import csv after sentix in R
+dataReviews_POS = pd.read_csv('../data/dataReviews_POS_pol.csv', sep=',').mask(dataReviews_POS.eq('None')).dropna()
+dataReviews_NEG = pd.read_csv('../data/dataReviews_NEG_pol.csv', sep=',').mask(dataReviews_NEG.eq('None')).dropna()
+dataReviews_NEUT = pd.read_csv('../data/dataReviews_NEUT_pol.csv', sep=',').mask(dataReviews_NEUT.eq('None')).dropna()
 ```
 
 ```{python}
-sub_data
+# merging dataframes
+dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG,dataReviews_NEUT], ignore_index=True)
+# dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG], ignore_index=True)
 ```
 
 ```{python}
-from sklearn.metrics import accuracy_score
-accuracy_score(sub_data["rating"], sub_data["new_afinn"])
+len(dataReviews_pol)
+```
+
+### Accuracy for each target
+
+```{python}
+print("% accuracy POS: ", len(dataReviews_POS.loc[dataReviews_POS.polarity.astype(float) > 0])/len(dataReviews_POS)*100)
 ```
 
 ```{python}
-sub_data["rating"]
+print("% accuracy NEG: ", len(dataReviews_POS.loc[dataReviews_NEG.polarity.astype(float) < 0])/len(dataReviews_NEG)*100)
 ```
 
 ```{python}
-sub_data["new_afinn"]
+print("% 3 stars with positive polarities: ", len(dataReviews_NEUT.loc[dataReviews_NEUT.polarity.astype(float) > 0])/len(dataReviews_NEUT)*100)
+```
+
+### Compare distribution of polarity and ratings
+
+```{python}
+dataReviews_pol['polarity'].astype(float).hist()
 ```
 
 ```{python}
-from sklearn.metrics import confusion_matrix
-confusion_matrix(sub_data["rating"], sub_data["new_afinn"])
+dataReviews_pol['rating'].hist()
+```
+
+### Compare distribution of a product
+
+```{python}
+# good examples
+# B01ETRGE7M bello
+# B00LPHUTOO altalena
+# B01EWQ10D8 non male
+# B0058BXHWE resegone
+prod_id = 'B01ETRGE7M'
+dataReviews_product = dataReviews.loc[dataReviews['product'] == prod_id]
 ```
 
 ```{python}
-sub_data["body"].iloc[2]
+# export csv for sentix R
+dataReviews_product.to_csv('../data/single_product.csv', sep=',')
+
 ```
 
-### Stemming
+```{python}
+# EXECUTE R CODE with prod_id 
+```
+
+```{python}
+# import csv after sentix in R
+dataReviews_product_pol = pd.read_csv('../data/single_product_pol.csv', sep=',').mask(dataReviews_POS.eq('None')).dropna()
+```
+
+```{python}
+dataReviews_product_pol
+```
+
+```{python}
+dataReviews_product_pol['polarity'].plot()
+```
+
+```{python}
+dataReviews_product_pol['rating'].plot()
+```
+
+### Rating and polarity of a product in time
+
+```{python}
+dataReviews_product_pol["date"] = dataReviews_product_pol["date"].progress_apply(lambda string: \
+                                                                           datetime.strptime(string, '%Y-%m-%d')) 
+```
+
+```{python}
+dataReviews_product_pol=dataReviews_product_pol.assign(
+    period=dataReviews_product_pol.date.dt.to_period('M')
+)
+```
+
+```{python}
+dataReviews_product_pol_month = dataReviews_product_pol.groupby('period').mean()
+```
+
+```{python}
+dataReviews_product_pol_month['polarity'].plot()
+```
+
+```{python}
+dataReviews_product_pol_month['polarity'].plot()
+```
+
+### Sentix (DISCARD ALL FROM HERE TO THE END ?)
 
 ```{python}
 from nltk.stem.snowball import SnowballStemmer
@@ -187,53 +277,55 @@ def stemming_token(sentence,stemmer):
 ```{python}
 sentix = pd.read_csv("../data/sentix.csv", sep="\t", header=None)
 sentix.columns=["lemma", "POS", "synset_ID", "score_1", "score_2", "polarity", "intensity"] 
-```
-
-```{python}
-sentix
-```
-
-```{python}
-stemmer.stem("bello")
+sentix.head(1)
 ```
 
 ```{python}
 sentix["lemma"] = sentix["lemma"].astype(str)
-```
-
-```{python}
 sentix["stemming"] = sentix["lemma"].apply(stemmer.stem)
+sentix.head(5)
 ```
 
 ```{python}
-sentix
-```
+sentix["polarity"] = sentix["polarity"]*5
+sentix.head(1)
 
-```{python}
-sub_data['token']=sub_data['body'].apply(word_tokenize)
-```
-
-```{python}
-sub_data
 ```
 
 ### Sentix for lexicon based sentiment analysis
 
 ```{python}
 sentix_agg = sentix.loc[sentix["POS"]=="a"]
-sentix_agg
+
+# add extra words
+sentix_agg = sentix_agg.append({'stemming': stemmer.stem('reso'), 'polarity': -5, 'intensity': 1, 'synset_ID': '00048739'}, ignore_index = True)
+sentix_agg = sentix_agg.append({'stemming': stemmer.stem('restituito'), 'polarity': -5, 'intensity': 1, 'synset_ID': '00048739'}, ignore_index = True)
+sentix_agg = sentix_agg.append({'stemming': 'bel', 'polarity': 5, 'intensity': 1, 'synset_ID': '00217728'}, ignore_index = True)
 ```
 
 ```{python}
-sentix_agg = sentix.loc[sentix["POS"]=="a"]
+sentix = sentix.append({'stemming': stemmer.stem('reso'), 'polarity': -5, 'intensity': 1, 'synset_ID': '00048739'}, ignore_index = True)
+sentix = sentix.append({'stemming': stemmer.stem('restituito'), 'polarity': -5, 'intensity': 1, 'synset_ID': '00048739'}, ignore_index = True)
+sentix = sentix.append({'stemming': 'bel', 'polarity': 5, 'intensity': 1, 'synset_ID': '00217728'}, ignore_index = True)
 ```
 
 ```{python}
-sub_data["stemming"]=[stemming_token(row["token"], stemmer) for _, row in sub_data.iterrows()]
+sentix_agg.iloc[len(sentix_agg)-1]
 ```
 
 ```{python}
-sub_data
+dataReviews_POS["token"] = dataReviews_POS["body"].apply(word_tokenize)
+dataReviews_POS["stemming"] = [stemming_token(row["token"], stemmer) for _, row in dataReviews_POS.iterrows()]
+dataReviews_NEG["token"] = dataReviews_NEG["body"].apply(word_tokenize)
+dataReviews_NEG["stemming"] = [stemming_token(row["token"], stemmer) for _, row in dataReviews_NEG.iterrows()]
+```
+
+```{python}
+dataReviews_POS.head(1)
+```
+
+```{python}
+dataReviews_NEG.head(1)
 ```
 
 ```{python}
@@ -243,9 +335,11 @@ def lexicon_based_score(sentence,df_sentix):
     sum_pol = 0
     count=0
     #print(sentence)
+    context = None
     for elem in sentence:
-        polarity = df_sentix[df_sentix.stemming  == elem]["polarity"]
-        if not(polarity.empty):
+        #polarity = df_sentix[df_sentix.stemming  == elem]['polarity']
+        values = df_sentix[df_sentix.stemming  == elem][['polarity','intensity','synset_ID']]
+        if not(values.empty):
             count += 1
             #print(elem)
             #print(polarity)
@@ -253,7 +347,15 @@ def lexicon_based_score(sentence,df_sentix):
             #if len(polarity >1):
                 #print(type(polarity.iloc[0]))
                 #print("polarity",polarity.value_counts())
-            sum_pol += statistics.mean(polarity*5)#.value_counts().index[0]
+            #sum_pol += polarity.value_counts().index[0]#statistics.mean(polarity)
+            synset_values = values[values.synset_ID == context]           
+            if synset_values.empty:
+                synset_values = values.iloc[0]
+                context = synset_values['synset_ID']
+            else:
+                synset_values =  synset_values.iloc[0]
+            sum_pol += synset_values['polarity']*synset_values['intensity']
+            
             #print(polarity)
             #print(statistics.mean(polarity))
             #else:
@@ -266,96 +368,40 @@ def lexicon_based_score(sentence,df_sentix):
 ```
 
 ```{python}
-sub_data["body"].iloc[1]
+polarity = sentix[sentix.stemming  == stemmer.stem('subito')][['polarity','intensity','synset_ID']]
+polarity.iloc[0]['polarity']*polarity.iloc[0]['intensity']
 ```
 
 ```{python}
-pol = lexicon_based_score(sub_data["stemming"].iloc[1], sentix_agg)
+
 ```
 
-```{python}
-pol
-```
+#### Sentix on positive reviews
 
 ```{python}
-print(sub_data["stemming"].iloc[0])
-pol = lexicon_based_score(sub_data["stemming"].iloc[0], sentix_agg)
-print(pol)
-```
-
-```{python}
-print(sub_data["body"].iloc[2])
-pol = lexicon_based_score(sub_data["stemming"].iloc[2], sentix_agg)
-print(pol)
-```
-
-```{python}
-print(sub_data["body"].iloc[3])
-pol = lexicon_based_score(sub_data["stemming"].iloc[3], sentix_agg)
-print(pol)
-```
-
-```{python}
-print(sub_data["body"].iloc[4])
-pol = lexicon_based_score(sub_data["stemming"].iloc[4], sentix_agg)
-print(sub_data["rating"].iloc[4])
-print(pol)
-```
-
-```{python}
-print(sub_data["body"].iloc[-1])
-print(sub_data["rating"].iloc[-1])
-
-pol = lexicon_based_score(sub_data["stemming"].iloc[-1], sentix_agg)
-print(pol)
-```
-
-```{python}
-sub_data['lexicon_score']= sub_data["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
-```
-
-```{python}
-sub_data
-```
-
-```{python}
-rating_5 = sub_data.loc[sub_data["rating"]==5]
-rating_5
-```
-
-```{python}
-rating_5['lexicon_score']= rating_5["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
+dataReviews_POS["pol"] = dataReviews_POS["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
 
 ```
 
 ```{python}
-statistics.mean(rating_5["lexicon_score"])
-```
-
-```{python}
-rating_5
-```
-
-```{python}
-rating_1 = sub_data.loc[sub_data["rating"]==1]
-rating_1
-```
-
-```{python}
-statistics.mean(rating_1["lexicon_score"])
-```
-
-```{python}
-rating_1['lexicon_score']= rating_1["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
+dataReviews_NEG["pol"] = dataReviews_NEG["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
 
 ```
 
 ```{python}
-rating_1
+print("% accuracy POS: ", len(dataReviews_POS.loc[dataReviews_POS.pol > 0])/len(dataReviews_POS)*100)
 ```
 
 ```{python}
-sub_data["lexicon_score"].value_counts()
+print("% accuracy NEG: ", len(dataReviews_NEG.loc[dataReviews_NEG.pol < 0])/len(dataReviews_NEG)*100)
+```
+
+```{python}
+dataReviews_NEG[dataReviews_NEG.pol > 0]['body'].values[0]
+```
+
+```{python}
+stemmer.stem('pessim')
 ```
 
 ### Prodotti nel tempo
@@ -412,18 +458,6 @@ df_month.plot(style='.-')
 
 ```{python}
 df_product [df_product["Period"]  == "2019-03"]
-```
-
-```{python}
-import datetime
-# considero periodi di 6 mesi
-def manage_date(date):
-    date= str(date)
-    datee = datetime.datetime.strptime(str(date), "%Y-%m")
-    six=1
-    if (datee.month > 6):
-        six=2
-    return str(datee.year)+"-"+str(six)
 ```
 
 ```{python}
