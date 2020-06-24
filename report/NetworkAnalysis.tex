@@ -1,0 +1,53 @@
+\section{Rete prodotti}\label{ReteProdotti}
+%TODO: non so se ci sia da scrivere qualcosa in generale prima di passare alla costruzione... magari dire anche qui bene gli obiettivi
+
+
+
+\subsection{Costruzione rete}
+%TODO: cosa rappresenta la rete, spiegare perchè abbiamo scartato also_viewed e aggregato le altre due, dire quindi cosa rappresentano le relazioni nuove
+
+\subsection{Analisi generale}
+%TODO: dire cos'è uscito magari mettendo la foto della rete completa
+
+%TODO: numero componenti connesse e giant component
+
+%TODO: dare info tipo disassortatività e altre misure generali (reciprocità? coesione?)
+
+%TODO: dire che HUBS tendono a non connettersi, quindi generalmente si acquista hub + nodo connesso ad hub ma non hub+hub (e cosa succede se elimino nodi hub? -> isolo nodi con grado basso (vedere esempio tipo tolgo olio di limone e separo tutte le corde))... magari mettere foto di hubs disposti a cerchio con i vicini? oppure anche isolati così si vede che non comunicano essendo la rete disassortativa
+
+%TODO: Prodotti centrali rete completa (degree/closeness)... ha senso anche prendere top X prodotti hub che hanno piu interazioni per capire a cosa gira intorno la porzione di amazon ?
+
+%TODO: dire qui cosa intendiamo per prodotto centrale/importante?? poi si riutilizza il concetto in categorie e communities...
+    
+%TODO: spiegare cosa sono i prodotti centrali qui... closeness e degree sono stessi prodotti, magari controllare.. in caso affermativo si possono dire le seguenti cose 
+    % DEGREE -> prodotto più facilmente acquistabile per chi ha acquistato altri prodotti della stessa categoria, ossia quello che porterebbe piu probabili vendite se sponsorizzato all'interno della categoria)
+    % DEGREE -> se pubblicizzo un prodotto con alto degree nel suo vicinato ho delle vendite facili molto probabili
+    % CLOSENESS -> prodotto meglio posizionato per influenzare la sottorete piu velocemente
+
+\subsection{Analisi categorie}
+%TODO: breve premessa che mostriamo solo risultati ottenuti sulle piu grandi perchè avendo solo una porzione sbilanciata del dataset sono le piu significative
+
+%TODO: distribuzione categorie istogramma (la mettiamo qui oppure nell'esplorazione del dataset e basta???)
+
+%TODO: tabella con le top X categorie (Prodotto centrale di ogni categoria.. forse betweenness=closenessin questi casi)
+
+%TODO: non so se mettere un piccolo esempio concreto in modo discorsivo... magari no
+
+
+%TODO: paragrafetto che dice che categorie sparse qua e là, a volte si dividono in piu componenti connesse, quindi è piu utile effettuare Community detection -> passiamo in modo smooooth alla sezione successiva
+
+\subsection{Analisi communities}
+%TODO: breve premessa che mostriamo solo risultati ottenuti sulle piu grandi perchè abbiamo molte componenti connesse, quindi molte community... piu significativo studiare solo quelle della giant component
+
+%TODO: dire come è stata effettuata la community detection
+
+%TODO: cosa abbiamo ottenuto: Distribuzione communities (+ numero rispetto a totale componenti connesse? numero communities nella giant component?)
+
+%TODO: dire cosa abbiamo fatto per "etichettare" una community
+    % categoria dominante con zscore by rpo il bibliografo
+    % WORDCLOUD titoli
+    % Entity Recognition e vediamo top entities
+
+%TODO: tabella con le top X communities (solite stats + qualche coefficiente tipo AVG intra/inter-clustering/silouhette?)
+
+%TODO: mettere un piccolo esempio concreto tra i top parlando del vicinato...

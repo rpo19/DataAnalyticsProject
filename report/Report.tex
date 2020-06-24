@@ -1,0 +1,32 @@
+\documentclass[12pt]{article}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\usepackage{graphicx}
+\usepackage[italian]{babel} % lingua del documento
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage[dvipsnames]{xcolor}
+
+
+\graphicspath{ {figures/} }
+\usepackage{float}
+\usepackage{longtable}
+\begin{document}
+\include{Front}
+\pagenumbering{roman}
+\tableofcontents
+
+\newpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\include{Intro}
+\include{EsplorazioneDataset}
+\include{NetworkAnalysis}
+\include{SentimentAnalysis}
+\include{Conclusioni}
+% \bibliography{Report1}
+% \bibliographystyle{ieeetr}
+
+\nocite{*}
+
+\end{document}
