@@ -40,7 +40,7 @@ Questo ci permette di capire che nel dataset dei prodotti ...TODO?....
 
 
 \subsection{Analisi categorie}
-Dopo aver osservato la rete nella sua globalità si è deciso di osservare le interazioni tra i prodotti dividendo la rete rispetto alle categorie. I risultati mostrati saranno relativi alle categorie più grandi in quanto, avendo a disposizione una porzione non bilanciata del dataset dei prodotti di amazon, sono le più significative. \\
+Dopo aver osservato la rete nella sua globalità si è deciso di osservare le interazioni tra i prodotti dividendo la rete rispetto alle categorie. I risultati mostrati sono quelli relativi alle categorie più grandi in quanto, avendo a disposizione una porzione non bilanciata del dataset dei prodotti di amazon, sono le più significative. \\
 In tabella \ref{tab:categoriesStats} sono disponibili le statistiche estratte per le prime XXX categorie più popolate. Per ogni categoria viene indicato il totale dei prodotti che raccoglie e il prodotto più centrale rispetto al grado ...e basta?...
 %TODO: tab:categoriesStats con le top X categorie (Prodotto centrale di ogni categoria.. forse betweenness=closenessin questi casi)
 
@@ -49,21 +49,22 @@ In tabella \ref{tab:categoriesStats} sono disponibili le statistiche estratte pe
 
 %TODO: paragrafetto che dice che categorie sparse qua e là, a volte si dividono in piu componenti connesse, quindi è piu utile effettuare Community detection -> passiamo in modo smooooth alla sezione successiva
 Osservando la figura \ref{fig:reteCompletaCategorie} si può notare come una divisione della rete in categorie non sia la scelta migliore, in quanto sono riscontrabili le presenze di una stessa categoria che si divide tra diverse componenti connesse (esempio?) o di diverse categorie che formano gruppi compatti (esempio?). % probabilmente l'ho detta un po' male ma non mi viene la frase
+%TODO: fig:reteCompletaCategorie
 Per questo motivo, come si vedrà nella sezione successiva, è piu utile effettuare community detection sulla rete per individuare i reali gruppi di prodotti che si formano in base alle relazioni di acquisto.
 
 \subsection{Analisi communities}
-Le communities della rete sono state individuate mediante l'algoritmo Clauset-Newman-Moore greedy modularity maximization. Tramite questo algoritmo sono state trovate XXX communities, numero elevato prevedibile data la grande quantit
-%TODO: breve premessa che mostriamo solo risultati ottenuti sulle piu grandi perchè abbiamo molte componenti connesse, quindi molte community... piu significativo studiare solo quelle della giant component
-
-%TODO: dire come è stata effettuata la community detection
-
-%TODO: cosa abbiamo ottenuto: Distribuzione communities (+ numero rispetto a totale componenti connesse? numero communities nella giant component?)
-
-%TODO: dire cosa abbiamo fatto per "etichettare" una community
-    % categoria dominante con zscore by rpo il bibliografo
-    % WORDCLOUD titoli
-    % Entity Recognition e vediamo top entities
-
-%TODO: tabella con le top X communities (solite stats + qualche coefficiente tipo AVG intra/inter-clustering/silouhette?)
-
-%TODO: mettere un piccolo esempio concreto tra i top parlando del vicinato...
+Le communities della rete sono state individuate mediante l'algoritmo Clauset-Newman-Moore greedy modularity maximization. Tramite questo algoritmo sono state trovate XXX communities. Il numero elevato era prevedibile data la grande quantità di componenti connesse pari a XXX. Si è osservato, inoltre, che le communities più rilevanti, fanno tutte parte della giant component che ne contiene XXX. \\
+%TODO: dire se generalmente le community sono monocategoria...?
+Come per le categorie, i risultati mostrati sono quelli relativi alle communities più importanti. 
+\\\\
+In tabella \ref{tab:communitiesStats} sono disponibili le statistche estratte per le prime XXX communities. \\
+Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, per ogni community è stato calcolato il coefficiente di clustering medio per determinare il livello di coesione.  Inoltre ci si è posti l'obiettivo di identificare la sfera di interesse di ogni gruppo di prodotti e di darne una sorta di etichetta che possa riassumerne il contenuto. A tale scopo sono stati calcolati i seguenti campi:
+\begin{itemize}
+    \item \textbf{dominant category}: categoria dominante della community; calcolata %TODO: zscore by rpo il bibliografo
+    \item \textbf{categories distribution}: distribuzione delle categorie principali presenti nella community
+    \item \textbf{top words}: parole più frequenti presenti nei titoli dei prodotti di una community; %TODO: RPO dire qualcosa sul come?
+    \item \textbf{top entities}: entità più frequenti estratte tramite entity recognition dai titoli dei prodotti di una community; %TODO: RPO dire qualcosa sul come?
+\end{itemize}
+%TODO tab:communitiesStats tabella con le top X communities (qualche coefficiente tipo AVG intra/inter-clustering/silouhette?)
+Nelle figure \ref{fig:wordCloudWords} e \ref{fig:wordCloudEntities} si trovano ... che suggeriscono che l'argomento della community è ...... \\\\
+%TODO: mettere un piccolo esempio concreto tra i top parlando del vicinato e dell'importanza del prodotto centrale...
