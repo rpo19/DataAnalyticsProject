@@ -1,0 +1,442 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.2
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from nltk.tokenize import word_tokenize
+import itertools
+from collections import Counter
+import nltk
+
+
+import string
+from nltk import wordpunct_tokenize
+
+from wordcloud import WordCloud
+
+
+import re
+
+#progress bar
+from tqdm import tqdm, tqdm_notebook
+
+# instantiate
+tqdm.pandas(tqdm_notebook)
+```
+
+```{python}
+dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
+```
+
+```{python}
+
+chunk_list = []  # append each chunk df here 
+
+# Each chunk is in df format
+for chunk in dataReviewsChunk:
+
+    chunk_list.append(chunk)
+
+```
+
+```{python}
+chunk_list
+```
+
+```{python}
+dataReviews = pd.concat(chunk_list)
+```
+
+```{python}
+dataReviews
+```
+
+### Exploratory Data Analysis
+
+```{python}
+print("Number of reviews:", len(dataReviews))
+```
+
+```{python}
+def convert_rating(rating):
+    return rating["$numberInt"]
+```
+
+```{python}
+dataReviews["rating"]=dataReviews["rating"].apply(convert_rating).astype(int)
+```
+
+```{python}
+counts = dataReviews["rating"].value_counts()
+```
+
+```{python}
+counts.values
+```
+
+```{python}
+x = counts._index
+print(x)
+y = counts.values
+print(y)
+```
+
+```{python}
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+```{python}
+print("Proportion of review with score=1: {}%".format(len(dataReviews[dataReviews.rating == 1]) / len(dataReviews)*100))
+print("Proportion of review with score=2: {}%".format(len(dataReviews[dataReviews.rating == 2]) / len(dataReviews)*100))
+print("Proportion of review with score=3: {}%".format(len(dataReviews[dataReviews.rating == 3]) / len(dataReviews)*100))
+print("Proportion of review with score=4: {}%".format(len(dataReviews[dataReviews.rating == 4]) / len(dataReviews)*100))
+print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReviews.rating == 5]) / len(dataReviews)*100))
+```
+
+```{python}
+from afinn import Afinn
+```
+
+```{python}
+afinn = Afinn()
+#dataReviews['afinn'] = dataReviews["body"].apply(afinn.score)
+```
+
+```{python}
+sub_data=dataReviews[:10000]
+sub_data['afinn'] = sub_data["body"].apply(afinn.score)
+sub_data
+```
+
+```{python}
+def afinn_to_rating(score_afinn):
+    if(score_afinn >= 4 ):
+        return 5
+    elif (score_afinn>=2 and score_afinn<= 3):
+        return 4
+    elif (score_afinn >=-1 and score_afinn <= 1):
+        return 3
+    elif (score_afinn >=-3 and score_afinn <=-2):
+        return 2
+    else:
+        return 1
+```
+
+```{python}
+sub_data["new_afinn"] = sub_data["afinn"].apply(afinn_to_rating)
+sub_data
+```
+
+```{python}
+sub_data
+```
+
+```{python}
+from sklearn.metrics import accuracy_score
+accuracy_score(sub_data["rating"], sub_data["new_afinn"])
+```
+
+```{python}
+sub_data["rating"]
+```
+
+```{python}
+sub_data["new_afinn"]
+```
+
+```{python}
+from sklearn.metrics import confusion_matrix
+confusion_matrix(sub_data["rating"], sub_data["new_afinn"])
+```
+
+```{python}
+sub_data["body"].iloc[2]
+```
+
+### Stemming
+
+```{python}
+from nltk.stem.snowball import SnowballStemmer
+```
+
+```{python}
+stemmer = SnowballStemmer("italian")
+def stemming_token(sentence,stemmer):
+    stem = []
+    for elem in sentence:
+        stem.append(stemmer.stem(elem))
+    return stem
+```
+
+```{python}
+sentix = pd.read_csv("../data/sentix.csv", sep="\t", header=None)
+sentix.columns=["lemma", "POS", "synset_ID", "score_1", "score_2", "polarity", "intensity"] 
+```
+
+```{python}
+sentix
+```
+
+```{python}
+stemmer.stem("bello")
+```
+
+```{python}
+sentix["lemma"] = sentix["lemma"].astype(str)
+```
+
+```{python}
+sentix["stemming"] = sentix["lemma"].apply(stemmer.stem)
+```
+
+```{python}
+sentix
+```
+
+```{python}
+sub_data['token']=sub_data['body'].apply(word_tokenize)
+```
+
+```{python}
+sub_data
+```
+
+### Sentix for lexicon based sentiment analysis
+
+```{python}
+sentix_agg = sentix.loc[sentix["POS"]=="a"]
+sentix_agg
+```
+
+```{python}
+sentix_agg = sentix.loc[sentix["POS"]=="a"]
+```
+
+```{python}
+sub_data["stemming"]=[stemming_token(row["token"], stemmer) for _, row in sub_data.iterrows()]
+```
+
+```{python}
+sub_data
+```
+
+```{python}
+import statistics 
+
+def lexicon_based_score(sentence,df_sentix):
+    sum_pol = 0
+    count=0
+    #print(sentence)
+    for elem in sentence:
+        polarity = df_sentix[df_sentix.stemming  == elem]["polarity"]
+        if not(polarity.empty):
+            count += 1
+            #print(elem)
+            #print(polarity)
+            #print(sum_pol)
+            #if len(polarity >1):
+                #print(type(polarity.iloc[0]))
+                #print("polarity",polarity.value_counts())
+            sum_pol += statistics.mean(polarity*5)#.value_counts().index[0]
+            #print(polarity)
+            #print(statistics.mean(polarity))
+            #else:
+            #    sum_pol += polarity
+    #print(sum_pol)
+    #print("_________________________________________________________")
+    if count != 0:
+        return sum_pol/count
+    return 0
+```
+
+```{python}
+sub_data["body"].iloc[1]
+```
+
+```{python}
+pol = lexicon_based_score(sub_data["stemming"].iloc[1], sentix_agg)
+```
+
+```{python}
+pol
+```
+
+```{python}
+print(sub_data["stemming"].iloc[0])
+pol = lexicon_based_score(sub_data["stemming"].iloc[0], sentix_agg)
+print(pol)
+```
+
+```{python}
+print(sub_data["body"].iloc[2])
+pol = lexicon_based_score(sub_data["stemming"].iloc[2], sentix_agg)
+print(pol)
+```
+
+```{python}
+print(sub_data["body"].iloc[3])
+pol = lexicon_based_score(sub_data["stemming"].iloc[3], sentix_agg)
+print(pol)
+```
+
+```{python}
+print(sub_data["body"].iloc[4])
+pol = lexicon_based_score(sub_data["stemming"].iloc[4], sentix_agg)
+print(sub_data["rating"].iloc[4])
+print(pol)
+```
+
+```{python}
+print(sub_data["body"].iloc[-1])
+print(sub_data["rating"].iloc[-1])
+
+pol = lexicon_based_score(sub_data["stemming"].iloc[-1], sentix_agg)
+print(pol)
+```
+
+```{python}
+sub_data['lexicon_score']= sub_data["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
+```
+
+```{python}
+sub_data
+```
+
+```{python}
+rating_5 = sub_data.loc[sub_data["rating"]==5]
+rating_5
+```
+
+```{python}
+rating_5['lexicon_score']= rating_5["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
+
+```
+
+```{python}
+statistics.mean(rating_5["lexicon_score"])
+```
+
+```{python}
+rating_5
+```
+
+```{python}
+rating_1 = sub_data.loc[sub_data["rating"]==1]
+rating_1
+```
+
+```{python}
+statistics.mean(rating_1["lexicon_score"])
+```
+
+```{python}
+rating_1['lexicon_score']= rating_1["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
+
+```
+
+```{python}
+rating_1
+```
+
+```{python}
+sub_data["lexicon_score"].value_counts()
+```
+
+### Prodotti nel tempo
+
+```{python}
+dataReviews["product"]
+```
+
+```{python}
+prod = "B00DDPI5NS"
+#prod = "B07DMJPV31"
+df_product = dataReviews[dataReviews["product"]  == prod]
+df_product
+```
+
+```{python}
+#delete day
+df_product=df_product.assign(
+    Period=df_product.date.dt.to_period('M')
+)
+df_product
+```
+
+```{python}
+df_product['token']=df_product['body'].progress_apply(word_tokenize)
+```
+
+```{python}
+df_product
+```
+
+```{python}
+sub_data
+```
+
+```{python}
+sub_data["stemming"]=[stemming_token(row["token"], stemmer) for _, row in sub_data.iterrows()]
+df_product["stemming"] = [stemming_token(df_product["token"], stemmer) for _, row in df_product.iterrows()]
+```
+
+```{python}
+df_product['lexicon_score_sentix']= df_product["stemming"].progress_apply(lambda x: lexicon_based_score(x,sentix_agg))
+```
+
+```{python}
+#dataReviews["product"]
+df_month = df_product[['Period','rating']].groupby(['Period']).mean()
+df_month
+```
+
+```{python}
+df_month.plot(style='.-')
+```
+
+```{python}
+df_product [df_product["Period"]  == "2019-03"]
+```
+
+```{python}
+import datetime
+# considero periodi di 6 mesi
+def manage_date(date):
+    date= str(date)
+    datee = datetime.datetime.strptime(str(date), "%Y-%m")
+    six=1
+    if (datee.month > 6):
+        six=2
+    return str(datee.year)+"-"+str(six)
+```
+
+```{python}
+# manage_date(df_product["Period"].iloc[0])
+df_product["new_period"] = df_product["Period"].apply(manage_date)
+df_product
+```
+
+```{python}
+final_product_df = df_product[['new_period','rating']].groupby(['new_period']).mean()
+final_product_df
+```
+
+```{python}
+final_product_df.plot(style='.-')
+```
