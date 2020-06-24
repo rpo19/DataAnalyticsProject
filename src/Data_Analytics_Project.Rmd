@@ -23,7 +23,6 @@ import pandas as pd
 import string
 import nltk
 import operator
-import nltk
 import scipy
 import json
 import random

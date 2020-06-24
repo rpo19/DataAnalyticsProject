@@ -36,105 +36,37 @@ from tqdm import tqdm, tqdm_notebook
 tqdm.pandas(tqdm_notebook)
 ```
 
-```{python}
-dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
-```
-
-```{python}
-
-chunk_list = []  # append each chunk df here 
-
-# Each chunk is in df format
-for chunk in dataReviewsChunk:
-
-    chunk_list.append(chunk)
-
-```
-
-```{python}
-dataReviews = pd.concat(chunk_list)
-```
-
 ### Exploratory Data Analysis
 
 ```{python}
-print("Number of reviews not filtered:", len(dataReviews))
-```
-
-```{python}
-def convert_int_value(int_value):
-    return int_value["$numberInt"]
-```
-
-#### Reducing reviews
-
-```{python}
-dataReviews["rating"]=dataReviews["rating"].apply(convert_int_value).astype(int)
-```
-
-```{python}
-dataReviews["helpful"]=dataReviews["helpful"].apply(convert_int_value).astype(int)
-```
-
-```{python}
-dataReviews = dataReviews[dataReviews.helpful != 0]
-```
-
-```{python}
-dataReviews = dataReviews[dataReviews.verified == True]
-```
-
-```{python}
-counts = dataReviews["rating"].value_counts()
-```
-
-```{python}
-print("Reduced reviews distribution [5-1] stars:", counts.values)
-```
-
-```{python}
-x = counts._index
-print(x)
-y = counts.values
-print(y)
-```
-
-```{python}
-fig = plt.figure(figsize=(18,6))
-sns.barplot(x=counts._index, y=counts.values)
-plt.title("Rating distribution")
-plt.show()
-```
-
-```{python}
-print("Proportion of review with score=1: {}%".format(len(dataReviews[dataReviews.rating == 1]) / len(dataReviews)*100))
-print("Proportion of review with score=2: {}%".format(len(dataReviews[dataReviews.rating == 2]) / len(dataReviews)*100))
-print("Proportion of review with score=3: {}%".format(len(dataReviews[dataReviews.rating == 3]) / len(dataReviews)*100))
-print("Proportion of review with score=4: {}%".format(len(dataReviews[dataReviews.rating == 4]) / len(dataReviews)*100))
-print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReviews.rating == 5]) / len(dataReviews)*100))
+def getDataReviewsReduced():
+    try:
+        dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+    except FileNotFoundError:
+        dataReviewsReduced = dataReviews.loc[dataReviews["verified"] == True]
+        dataReviewsReduced = dataReviewsReduced.loc[dataReviews["helpful"] != 0]
+        dataReviewsReduced.to_csv("../data/dati_ridotti.csv", sep=",")
+    return dataReviewsReduced
+dataReviewsReduced = getDataReviewsReduced()
 ```
 
 ### Preparing dataset for sentiment analysis
 
 ```{python}
-dataReviews = pd.read_csv('../data/dati_ridotti.csv', sep=',')
-```
-
-```{python}
-dataReviews_POS = pd.DataFrame(dataReviews[dataReviews.rating > 3].sample(1000))
+dataReviews_POS = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating > 3].sample(1000))
 dataReviews_POS['target'] = 'POS'
 dataReviews_POS['polarity'] = 'None'
 
 ```
 
 ```{python}
-dataReviews_NEG = pd.DataFrame(dataReviews[dataReviews.rating < 3].sample(1000))
+dataReviews_NEG = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating < 3].sample(1000))
 dataReviews_NEG['target'] = 'NEG'
 dataReviews_NEG['polarity'] = 'None'
 ```
 
 ```{python}
-dataReviews_NEUT = pd.DataFrame(dataReviews[dataReviews.rating == 3].sample(1000))
+dataReviews_NEUT = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating == 3].sample(1000))
 dataReviews_NEUT['target'] = 'NEUT'
 dataReviews_NEUT['polarity'] = 'None'
 ```
@@ -204,7 +136,7 @@ dataReviews_pol['rating'].hist()
 # B01EWQ10D8 non male
 # B0058BXHWE resegone
 prod_id = 'B01ETRGE7M'
-dataReviews_product = dataReviews.loc[dataReviews['product'] == prod_id]
+dataReviews_product = dataReviewsReduced.loc[dataReviewsReduced['product'] == prod_id]
 ```
 
 ```{python}
