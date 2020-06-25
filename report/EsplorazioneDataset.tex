@@ -22,7 +22,11 @@ La tabella \textit{product} è quella su cui si baserà l'analisi di rete e si c
 \end{itemize}
 Questa tabella raccoglie un totale di 20,459 prodotti, i quali si dividono in 37 categorie. La distribuzione nelle categorie è mostrata in figura \ref{fig:distribuzioneCategorie} e si può come essa sia particolarmente sbilanciata. \\
 Le relazioni \textit{bought\_together}, \textit{also\_bought} e \textit{also\_viewed} che legano i prodotti sono fondamentali per effettuare un'analisi di rete e saranno approfondite nella sezione \ref{ReteProdotti}. Riguardo a queste relazioni è bene far notare che molti degli identificativi fanno riferimento a prodotti ignoti in quanto non compaiono nel dataset disponibile.
-%TODO: mettere figura distribuzioneCategorie
+
+\begin{figure}[H]
+    \includegraphics[scale=0.7]{distribuzioneCategorie}\centering
+    \caption{Distribuzione dei prodotti tra le categorie}\label{fig:distribuzioneCategorie}
+\end{figure}
 
 \subsection{Recensioni}\label{Recensioni}
 La tabella \textit{reviews}, che sarà oggetto di una Sentiment Analysis, si compone dai seguenti campi:
@@ -40,6 +44,9 @@ La tabella \textit{reviews}, che sarà oggetto di una Sentiment Analysis, si com
 \end{itemize} 
 La tabella raccoglie un totale di 1,988,854 recensioni. In figura \ref{fig:distribuzioneRating} è possibile osservare una distribuzione fortemente sbilanciata verso le valutazioni positive, per questo motivo sarà importante bilanciare i dati nella fase di Sentiment Analysis. Come verrà mostrato alla sezione \ref{SentimentAnalysis}, gli attributi \textit{helpful} e \textit{verified} assumeranno un ruolo importante nel filtraggio del numero di recensioni. L'attributo \textit{body} costituirà invece il testo oggetto dell'analisi.
 
-%TODO: mettere figura distribuzioneRating
+\begin{figure}[H]
+    \includegraphics[scale=0.3]{distribuzioneRatingRecensioni}\centering
+    \caption{Distribuzione del numero di stelle delle recensioni}\label{fig:distribuzioneRatingRecensioni}
+\end{figure}
 
 %TODO: magari mettere le word cloud raggruppate per stelle... non so se per ogni stella o aggregare 12 e 45 anche qua (fare l'intersezione che diceva gabri)

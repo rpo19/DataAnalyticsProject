@@ -5,7 +5,7 @@ L'analisi condotta sulla rete ha lo scopo di individuare gruppi di prodotti che 
 Inizialmente sono state generate 3 reti diverse tenendo conto delle singole relazioni \textit{bought\_together}, \textit{also\_bought} e \textit{also\_viewed}. Da un studio generale è emerso che la relazione \textit{also\_viewed} risulti poco significativa per gli obiettivi preposti, per cui è stata scartata in quanto collega prodotti prettamente simili tra loro. Le relazioni di\textit{bought\_together} e \textit{also\_bought}, invece, permettono di portare alla luce prodotti diversi il cui impiego effettivo può dipendere l'uno dall'altro e ciò permette di stabilire se esistono prodotti particolarmente strategici all'interno della rete. Si è inoltre notato che le due relazioni in questione riportano spesso lo stesso prodotto come sia in \textit{bought\_together} che in \textit{also\_bought} e che inoltre la direzionalità della relazione \textit{also\_bought} sia indipendente da una temporalità di acquisto. \\
 Al netto di queste motivazioni, è state considerato ragionevole effettuare un'unione delle due relazioni in un'unica relazione di acquisto adirezionale. 
 \\\\
-Una volta stabilito il nuovo insieme di relazioni è stata necessaria una fase di pulizia per andare a scartare gli archi e i nodi superflui per la costruzione della rete. Per prima cosa è stato necessario rimuovere tutti gli archi di cui non sono presenti le informazioni relative al nodo destinazione. Dopodichè, sono state unite tutte le relazioni simmetriche in quanto la direzionalità delle relazioni non è significativa ai fini di questa analisi. Infine, sono stati rimossi dalla tabella dei prodotti tutti i nodi rimasti isolati dopo il filtraggio delle relazioni. Al termine del processo di pulizia si è passati da XXX a XXX per il numero di archi e da XXX a XXX per il numero di nodi. \\
+Una volta stabilito il nuovo insieme di relazioni è stata necessaria una fase di pulizia per andare a scartare gli archi e i nodi superflui per la costruzione della rete. Per prima cosa è stato necessario rimuovere tutti gli archi di cui non sono presenti le informazioni relative al nodo destinazione. Dopodichè, sono state unite tutte le relazioni simmetriche in quanto la direzionalità delle relazioni non è significativa ai fini di questa analisi. Infine, sono stati rimossi dalla tabella dei prodotti tutti i nodi rimasti isolati dopo il filtraggio delle relazioni. Al termine del processo di pulizia si è passati da 82628 a 26572 per il numero di archi e da 20459 a 17914 per il numero di nodi. \\
 A partire dal nuovo insieme di archi è stata quindi costruita la rete dei prodotti tramite un grafo non orientato.
 
 
@@ -21,14 +21,26 @@ I prodotti strategici vengono individuati tramite il calcolo delle centralità d
     % CLOSENESS -> prodotto meglio posizionato per influenzare la sottorete piu velocemente -> ha senso sulla globalità? sfere di interesse del dataset?
 
 \subsection{Analisi generale}
-La rete che è stata costruita è mostrata in figura \ref{fig:reteCompleta}. Essa conta un totale di XXX componenti connesse, tra cui una giant component costituita da XXX nodi e XXX archi. \\
-In figura \ref{fig:distribuzioneGradi} è mostrata la distribuzione dei gradi. Computando l'average degree si osserva che mediamente un prodotto tende ad essere connesso con altri XXX prodotti. Il coefficiente di clustering medio dell'intera rete è pari a XXX, quindi ...TODO?... La reciprocità è pari a XXX, quindi ...TODO?... La densità ha un valore di XXX, quindi ...TODO?... \\\\
-%TODO: fig:reteCompleta
-%TODO: fig:distribuzioneGradi
-Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di XXX che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi hubs con grado più alto tendano a connettersi a nodi con grado basso. Da qui si può dire che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta e in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti del proprio vicinato. %TODO: mettere esempio? tipo tolgo olio di limone e separo corde... ihihi
+La rete che è stata costruita conta un totale di 962 componenti connesse, tra cui una giant component (figura \ref{fig:giantComponent}) costituita da 11,937 nodi e 18,991 archi. \\
+In figura \ref{fig:distribuzioneGradi} è mostrata la distribuzione dei gradi. Computando l'average degree (2.966) si osserva che mediamente un prodotto tende ad essere connesso con altri 3 prodotti. Il coefficiente di clustering medio dell'intera rete è pari a 0.286, quindi mediamente per un nodo si ha che circa 1/3 dei vicini è connesso. La densità della rete ha un valore molto basso pari, pari a 0.000165 . \\\\
+
+\begin{figure}[]
+    \includegraphics[scale=0.45]{giantComponent}\centering
+    \caption{Giant component colorata per categorie e con dimensione dei nodi data dalla degree centrality}\label{fig:giantComponent}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[scale=0.37]{distribuzioneGradi}\centering
+    \caption{Distribuzione dei gradi nella rete completa}\label{fig:distribuzioneGradi}
+\end{figure}
+
+Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di -0.0194 che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi hubs con grado più alto tendano a connettersi a nodi con grado basso. A conferma di ciò, in figura \ref{fig:hubs} si può osservare come i nodi di grado più alto\footnote{sono stati considerati come nodi gli hubs di grado almeno pari a 20} non tendano a connettersi tra loro. Da qui si può dire che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta e in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti del proprio vicinato. 
 %TODO: fig:assortativity con quel grafico K e K' che deve colorarsi su antidiagonale
-%TODO: magari mettere foto di hubs disposti a cerchio con i vicini? oppure anche isolati così si vede che non comunicano essendo la rete disassortativa... oppure basta solo il grafico sopra
-\\\\
+\begin{figure}[H]
+    \includegraphics[scale=0.3]{hubs}\centering
+    \caption{Nodi hubs con grado almeno pari a 20 isolati dal resto della rete}\label{fig:hubs}
+\end{figure}
+
 %TODO: Prodotti centrali rete completa (degree/closeness)... ha senso anche prendere top X prodotti hub che hanno piu interazioni per capire a cosa gira intorno la porzione di amazon ?
 Per quanto riguarda i prodotti più centrali della rete i top XXX per la misura di YYY sono:
 \begin{enumerate}
