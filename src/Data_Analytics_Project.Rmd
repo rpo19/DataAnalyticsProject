@@ -26,7 +26,8 @@ import operator
 import scipy
 import json
 import random
-import amatrix
+import spacy
+import base64
 
 from random import randint
 from tqdm.notebook import tqdm
@@ -48,6 +49,11 @@ from networkx.algorithms.community import greedy_modularity_communities
 
 from wordcloud import WordCloud
 from pandas.plotting import scatter_matrix
+```
+
+```{python}
+nltk.download('punkt')
+nltk.download('stopwords')
 ```
 
 ## Data importation
@@ -129,11 +135,7 @@ def csvCreateEdges():
     print("# edges:", len(edges))
     
     # export edges for cytoscape
-    #edges.to_csv("../networkData/cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
-```
-
-```{python}
-csvCreateEdges()
+    edges.to_csv("../networkData/cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
 ```
 
 # Network analysis
@@ -198,10 +200,6 @@ connected_components
 ```{python}
 data = pd.DataFrame(data.loc[data['_id'].isin(list(full_graph))])
 len(data)
-```
-
-```{python}
-
 ```
 
 ## Filter products by categories
@@ -389,54 +387,6 @@ communities = [list(x) for x in communities]
 ```
 
 ```{python}
-communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id', 'max_degree', 'avg_clust', 'top_words'])
-for i, community in enumerate(communities):
-    # dominant category
-    categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
-    #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
-    dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
-    # compute stats
-    cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
-    avg_clust = nx.average_clustering(full_graph.subgraph(community))
-    communities_stats = communities_stats.append({'id': i+1,'community': community,'dominant_category': dominant_category,\
-                                                  'categories_distribution':categories_distribution,'cardinality':cardinality,\
-                                                  'max_degree_id':max_degree_id, 'max_degree':max_degree, 'avg_clust': avg_clust}, ignore_index = True)
-communities_stats
-```
-
-## Average clustering coefficient 
-
-```{python}
-
-np.average(communities_stats['avg_clust'].values, weights=communities_stats['cardinality'].values)
-```
-
-## Assign community to each product
-
-```{python}
-for _, community in communities_stats.iterrows():
-    rows = list(data.index[data['_id'].isin(community['community'])])
-    data.loc[rows, 'community'] = int(community['id'])
-data
-```
-
-### Write cytoscape products csv
-
-```{python}
-csvCreateNodes()
-```
-
-## Most common words for each community
-
-```{python}
-nltk.download('punkt')
-nltk.download('stopwords')
-#nltk.download('averaged_perceptron_tagger')
-#nltk.download('maxent_ne_chunker')
-#nltk.download('words')
-```
-
-```{python}
 #communities_stats['category'].count()
 #communities_stats.loc[communities_stats['dominant_category'].isnull()].sort_values('cardinality', ascending=False)['categories_distribution'].values
 #type(communities_stats.iloc[1])
@@ -444,11 +394,11 @@ nltk.download('stopwords')
 stop_words = nltk.corpus.stopwords.words('italian') + nltk.corpus.stopwords.words('english')
 punctuation = string.punctuation + "-"
 
+nlp = spacy.load("it_core_news_sm")
+
 def flatten(listoflists):
     return [item for list in listoflists for item in list]
 
-import spacy
-nlp = spacy.load("it_core_news_sm")
 def processTitlesSpacy(titles):
     ret = titles.apply(lambda x: [ent.text for ent in nlp(x).ents])
     ret = Counter(flatten(ret))
@@ -475,27 +425,7 @@ def processTitlesSimple(titles):
                                not in punctuation and word.lower() not in stop_words])
     ret = Counter(flatten(ret))
     return dict(ret.most_common(50))
-```
 
-```{python}
-method = "simple"
-if method == "ne":
-    processTitlesFun=processTitles
-elif method == "spacy":
-    processTitlesFun=processTitlesSpacy
-else:
-    processTitlesFun=processTitlesSimple
-
-communities_stats["top_words"] = communities_stats["community"].apply(\
-                                        lambda x: processTitlesSimple(data.loc[data['_id'].isin(x)]["title"]))
-
-communities_stats["top_ents"] = communities_stats["community"].apply(\
-                                        lambda x: processTitlesSpacy(data.loc[data['_id'].isin(x)]["title"]))
-
-```
-
-```{python}
-import base64
 def word_cloud_to_base64(word_counter):
     wordcloud = WordCloud(background_color='white').generate_from_frequencies(word_counter)
     filename = "/tmp/wordcloud.png"
@@ -506,104 +436,60 @@ def word_cloud_to_base64(word_counter):
 ```
 
 ```{python}
-communities_stats["wordclouds"] = communities_stats.iloc[0:9]["top_words"].apply(word_cloud_to_base64)
+def getCommunitiesStats():
+    communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id', 'max_degree', 'avg_clust', 'top_words'])
+    for i, community in enumerate(communities):
+        # dominant category
+        categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
+        #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
+        dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
+        # compute stats
+        cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
+        avg_clust = nx.average_clustering(full_graph.subgraph(community))
+        communities_stats = communities_stats.append({'id': i+1,'community': community,'dominant_category': dominant_category,\
+                                                      'categories_distribution':categories_distribution,'cardinality':cardinality,\
+                                                      'max_degree_id':max_degree_id, 'max_degree':max_degree, 'avg_clust': avg_clust}, ignore_index = True)
+
+    # Assign community to each product
+    for _, community in communities_stats.iterrows():
+        rows = list(data.index[data['_id'].isin(community['community'])])
+        data.loc[rows, 'community'] = int(community['id'])
+    data
+
+    communities_stats["top_words"] = communities_stats["community"].apply(\
+                                            lambda x: processTitlesSimple(data.loc[data['_id'].isin(x)]["title"]))
+
+    communities_stats["top_ents"] = communities_stats["community"].apply(\
+                                            lambda x: processTitlesSpacy(data.loc[data['_id'].isin(x)]["title"]))
+
+    communities_stats["wordclouds"] = communities_stats.iloc[0:9]["top_words"].apply(word_cloud_to_base64)
+```
+
+## Average clustering coefficient 
+
+```{python}
+np.average(communities_stats['avg_clust'].values, weights=communities_stats['cardinality'].values)
+```
+
+### Write cytoscape products csv
+
+```{python}
+#csvCreateNodes()
+```
+
+## Most common words for each community
+
+```{python}
+try:
+    communities_stats = pd.read_csv("../dataApp/communities_stats.csv", sep='\t')
+    # TODO top ents words are strings
+except FileNotFoundError:
+    communities_stats = getCommunitiesStats()
+    communities_stats.to_csv("../dataApp/communities_stats.csv", sep='\t')
 ```
 
 ```{python}
-communities_stats.iloc[0:11]["wordclouds"]
-```
-
-```{python}
-communities_stats.to_csv("../dataApp/communities_stats.csv", sep='\t')
-```
-
-```{python}
-data.loc[data['_id'].isin(communities_stats.iloc[0]["community"])]["title"].values
-```
-
-```{python}
-from tqdm.notebook import tqdm
-tqdm.pandas()
-communities_stats.progress_apply(lambda x: x)
-```
-
-```{python}
-communities_stats["top_words"]
-```
-
-```{python}
-titles = data.loc[data['_id'].isin(communities_stats.iloc[0]["community"])]["title"]
-titles
-p = processTitles(titles)
-p
-```
-
-```{python}
-d
-```
-
-```{python}
-nltk.ne_chunk(nltk.pos_tag("il più grosso è Christian Bernasconi".split(" ")))
-```
-
-```{python}
-import spacy
-
-nlp = spacy.load("it_core_news_sm")
-#[ent for ent in nlp("Mary Poppins").ents]
-doc = nlp("Playstation 4")
-
-for ent in doc.ents:
-    print(ent.text, ent.start_char, ent.end_char, ent.label_)
-```
-
-```{python}
-nee = titles.apply(lambda x: [ent.text for ent in nlp(x).ents])
-
-```
-
-```{python}
-c = Counter(flatten(nee))
-```
-
-```{python}
-c.most_common(20)
-```
-
-```{python}
-titles
-```
-
-```{python}
-str = "ciao mi chiamo Capitan Harlock e sono Blu"
-a = nltk.tokenize.word_tokenize(str)
-a = nltk.pos_tag(a)
-a = nltk.ne_chunk(a)
-[ w[0] if isinstance(w, tuple) else " ".join(t[0] for t in w) for w in a]
-```
-
-```{python}
-" ".join([w for w,_ in f.leaves()])
-```
-
-```{python}
-merged_titles = " ".join([data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in communities_stats.iloc[53]["community"]])
-r = processMergedTitles(merged_titles)
-r
-```
-
-```{python}
-print(type(communities_stats.loc[communities_stats["id"] == 1].iloc[0]["top_words"]))
-print(type(communities_stats.loc[250]["top_words"]))
-```
-
-```{python}
-[ww for wc in communities_stats["top_words"].values for ww in wc if len(ww.split(" "))>1]
-#print([ww for ww in c if len(ww.split(" "))>1])
-```
-
-```{python}
-communities_stats.loc[communities_stats["dominant_category"].isnull()]
+communities_stats.iloc[15]["top_words"]
 ```
 
 ```{python}
@@ -613,69 +499,6 @@ wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top
 plt.figure(figsize = (10, 8), facecolor = None) 
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
-```
-
-```{python}
-communities_stats.iloc[10]
-```
-
-```{python}
-comm = communities_stats.iloc[0]
-idprice = [data.loc[data['_id'].isin(comm["community"])].iloc[0][["_id","price"]] for product_id ]
-idprice
-```
-
-```{python}
-comm = communities_stats.iloc[8]
-print(comm[["dominant_category", "top_words", "categories_distribution"]])
-d = data.loc[data['_id'].isin(comm["community"])]
-z = scipy.stats.zscore(d["price"])
-dc = d.copy()
-dc["zscore"] = z
-c = z.argsort()[::-1]
-dc.iloc[c]
-```
-
-```{python}
-comm = communities_stats.iloc[3]
-print(comm)
-data.loc[data['_id'] == comm["max_degree_id"]]
-```
-
-```{python}
-[data.loc[data['_id'] == product_id].iloc[0]["title"] for product_id in communities_stats.iloc[54]["community"]]
-```
-
-```{python}
-print(r)
-```
-
-```{python}
-print(dict(r.most_common(10)))
-print(len(r))
-```
-
-```{python}
-wordcloud = WordCloud().generate_from_frequencies(dict(r.most_common(50)))
-plt.figure(figsize = (10, 8), facecolor = None) 
-plt.imshow(wordcloud, interpolation='bilinear')
-plt.axis("off")
-```
-
-```{python}
-communities_stats.iloc[0:20][["top_words", "dominant_category"]]
-```
-
-```{python}
-communities_stats.loc[communities_stats["dominant_category"].isnull()]["categories_distribution"]
-```
-
-```{python}
-prova = data.loc[data['_id'].isin(communities[0])].groupby('category').count()['_id']
-top = 3
-
-sum(prova.sort_values(ascending=False).head(top))+sum(prova.sort_values(ascending=False).iloc[top:len(prova)])
-
 ```
 
 ```{python}
@@ -694,51 +517,41 @@ sns.distplot(data.loc[data["_id"].isin([community["max_degree_id"] \
 sns.distplot(data["price"])
 ```
 
-```{python}
-data
-```
-
 ## Bridges
 
 ```{python}
-bridges = list(nx.bridges(full_graph))
+def getBridgesCat():
+    bridges = list(nx.bridges(full_graph))
+    
+    bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to'])
+    for edge in bridges:
+        cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
+        cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
+        if cat_from != cat_to:
+            bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
+                                              'cat_to': cat_to}, ignore_index=True)
+            
+    bridges_betweenness = nx.edge_betweenness_centrality(full_graph)
+    
+    bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to', 'edge_betweenness'])
+    for edge in bridges:
+        cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
+        cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
+        if cat_from != cat_to:
+            bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
+                                              'cat_to': cat_to, 'edge_betweenness': bridges_betweenness[edge]}, ignore_index=True)
+    return bridges_cat
 ```
 
 ```{python}
-bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to'])
-for edge in bridges:
-    cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
-    cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
-    if cat_from != cat_to:
-        bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
-                                          'cat_to': cat_to}, ignore_index=True)
-bridges_cat
-```
-
-```{python}
-bridges_betweenness = nx.edge_betweenness_centrality(full_graph)
-```
-
-```{python}
-bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to', 'edge_betweenness'])
-for edge in bridges:
-    cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
-    cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
-    if cat_from != cat_to:
-        bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
-                                          'cat_to': cat_to, 'edge_betweenness': bridges_betweenness[edge]}, ignore_index=True)
-bridges_cat
-```
-
-```{python}
-bridges_cat.to_csv('./bridges.csv',sep="\t", index=False)
+try:
+    bridges_cat = pd.read_csv('./bridges.csv',sep="\t")
+except FileNotFoundError:
+    bridges_cat = getBridgesCat()
+    bridges_cat.to_csv('./bridges.csv',sep="\t", index=False)
 ```
 
 ## ! read csv !
-
-```{python}
-bridges_cat = pd.read_csv('./bridges.csv', sep='\t')
-```
 
 ```{python}
 cat_in_bridges = bridges_cat[['cat_from','cat_to']].drop_duplicates().values
