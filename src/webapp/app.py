@@ -4,12 +4,13 @@ import dash_core_components as dcc
 import dash_html_components as html
 from pages.exploration import exploration_layout, products_layout, sample_products_list, reviews_layout, histCategories, histRating, histPrice, dfSampleProducts
 from pages.network import network_layout, readGraph, communities_stats
-from pages.sentiment import sentiment_layout, clean_sentence, bow, model
+from pages.sentiment import sentiment_layout, clean_sentence, bow, model, dfTimeSeries
 from pages.about import about_layout
 from dash.dependencies import Input, Output
 import dash_cytoscape as cyto
 import json
 import ast
+import plotly.express as px
 
 app = dash.Dash(
     __name__,
@@ -284,12 +285,35 @@ def callback(clicks, input_value):
                 ], className='flex-row flex-center')
 
 
+# @app.callback(Output('prod-series-output', 'children'),
+#               [Input('dropTimeSeries', 'value')])
+# def render_content(value):
+#     if value is not None:
+#         return html.Div('Review Number: ' + str(dfSampleProducts.iloc[int(value)]['reviews_number']), className='subtitle zan-box-shadow', style={'marginTop': '24px', 'padding': '10px', 'borderRadius': '6px'})
+
 @app.callback(Output('prod-series-output', 'children'),
               [Input('dropTimeSeries', 'value')])
-def render_content(value):
-    if value is not None:
-        return html.Div('Review Number: ' + str(dfSampleProducts.iloc[int(value)]['reviews_number']), className='subtitle zan-box-shadow', style={'marginTop': '24px', 'padding': '10px', 'borderRadius': '6px'})
-
+def render_content(idProd):
+    if idProd is not None:
+        filteredDf = dfTimeSeries.loc[dfTimeSeries['product'] == idProd]
+        trendCoeff = filteredDf['trendCoeff'].values[0]
+        fig = fig = px.line(filteredDf, x='Period', y=['polarity', 'rating'],)
+        print(trendCoeff)
+        trendLabel = 'Trending Down'
+        trendIcon = 'trending_down'
+        trendColor = '#E44133'
+        if trendCoeff > 0:
+            trendLabel = 'Trending Up'
+            trendIcon = 'trending_up'
+            trendColor = '#33A352'
+            
+        return html.Div(children=[
+            dcc.Graph(id='time-series-graph', figure=fig),
+            html.Div(children=[
+                html.I(trendIcon, className='material-icons-round', style={'fontSize': '50px', 'color': trendColor, 'marginLeft':'auto', 'marginRight':'20px'}),
+                html.Div(trendLabel, className='subtitle', style={'marginRight':'auto'})
+            ], className='flex-row flex-center')
+        ], className='flex-column')
 
 if __name__ == '__main__':
     app.run_server(debug=True)

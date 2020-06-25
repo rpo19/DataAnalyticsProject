@@ -7,10 +7,11 @@ import nltk
 import string
 from nltk.stem.snowball import SnowballStemmer
 from nltk.tokenize import word_tokenize
-from pages.exploration import dfSampleProducts
 import plotly.express as px
 
 dfNeutral = pd.read_csv('../dataApp/neutralReviews.csv')
+dfSentProducts = pd.read_csv('../dataApp/sentimentProducts.csv', sep='\t')
+dfTimeSeries= pd.read_csv('../dataApp/dataReviewsMonthly.csv')
 fig = px.pie(dfNeutral, values='count', names='polarity', color_discrete_sequence=['#33A352','#E44133'])
 
 def readBow():
@@ -87,13 +88,14 @@ sentiment_layout = [
         dcc.Dropdown(
             id='dropTimeSeries',
             options=[
-                {'label': dfSampleProducts.iloc[0]['title'][0:50], 'value': '0'},
-                {'label': dfSampleProducts.iloc[1]['title'][0:50], 'value': '1'},
-                {'label': dfSampleProducts.iloc[2]['title'][0:50], 'value': '2'},
-                {'label': dfSampleProducts.iloc[3]['title'][0:50], 'value': '3'},
+                {'label': dfSentProducts.iloc[0]['title'][0:50], 'value': dfSentProducts.iloc[0]['_id']},
+                {'label': dfSentProducts.iloc[1]['title'][0:50], 'value': dfSentProducts.iloc[1]['_id']},
+                {'label': dfSentProducts.iloc[2]['title'][0:50], 'value': dfSentProducts.iloc[2]['_id']},
+                {'label': dfSentProducts.iloc[3]['title'][0:50], 'value': dfSentProducts.iloc[3]['_id']},
             ]
         ),
-        html.Div(id='prod-series-output'),
+        html.Div(id='prod-series-output', style={'width': '90%'}),
+        #dcc.Graph(id='time-series-graph'),
     ], className='flex-column flex-center'),
     html.Div(id='tabs-sentiment-output')
     ], className='p-20', style={'paddingBottom':'100px'})
