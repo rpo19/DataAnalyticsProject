@@ -20,13 +20,18 @@ Gli scarsi risultati hanno portato a scartare l'approccio e a prenderne in consi
 %TODO: dire che si considera il binario, GABRI the machine learner se ha in mente premesse da fare le facci lei
 %TODO: dire modello utilizzato e con che parametri eventualmente
 
-%TODO: dire che avendo a disposizione un grande numero di recensioni decidiamo che possiamo usare solo quelle filtrate verified e helpful > 1 per addestrare bene e in modo piu AFFIDABILE il modello
-Anche in questo caso, avendo a disposizione un numero di recensioni molto elevato, si è deciso di utilizzare il sottoinsieme filtrato su quelle che sono sia verificate che considerate utili da almeno un utente in quanto considerate più affidabili per addestrare il modello. 
+Anche in questo caso, avendo a disposizione un numero di recensioni molto elevato, si è deciso di utilizzare il sottoinsieme filtrato su quelle che sono sia verificate che considerate utili da almeno un utente in quanto considerate più affidabili per addestrare il modello. Per bilanciare il numero di recensioni positive molto più alto di quelle negative da dare in input al modello è stato fatto undersampling ed è stato ottenuto un insieme di XXX esempi di training diviso in due tra le classi. \\
+Il modello è stato addestrato tramite una 10-fold cross-validation ed ha ottenuto un'accuratezza pari a XXX, con la matrice di confusione riportata in tabella \ref{tab:matriceConfusioneModello}. \\\\
+%TODO: tab:matriceConfusioneModello
 %AAAAAAAAAAAAAAAA: da qui in poi i risultati che mostriamo dovremmo tirarli fuori dalle recensioni non filtrate
 %TODO: confrontare andamento raggruppato per mese di qualche prodotto significativo (significativo = ha tante recensioni, quindi fa un grafico piu realistico) -> molto simili...
+Con il modello ottenuto è stato poi possibile calcolare il sentimento delle recensioni su alcuni prodotti d'esempio per osservarne l'andamento nel tempo rispetto al trend delle stelle. In questo caso, per avere un insieme di valori più ampio e tracciare un grafico più, sono state considerate anche le recensioni non verificate e non marcate come utili. Dopo aver effettuato la previsione del sentimento, è stata calcolata la media dei valori raggruppati per mese e è stata tracciata la curva nel tempo. Come si può vedere in figura \ref{fig:andamentoSentimentoProdotto}, la curva del sentimento e quella del numero medio di stelle\footnote{i valori medi del numero di stelle sono stati portati in una scala di valori compresa tra 0 e 1} seguono lo stesso andamento. In questo esempio, il coefficiente di correlazione tra i valori medi raggruppati per mese è pari a XXX. \\\\
+%TODO: fig:andamentoSentimentoProdotto
 %TODO: calcolare un eventuale coefficiente di correlazioneee?
 
-%TODO: mostrare e discutere risultati ottenuti effettuando previsione sulle 3 stelle
+
+Come ultima cosa, è stato utilizzato il modello per verifiare il sentimento medio rispetto all'utilizzo delle 3 stelle. I risultati ottenuti mostrano come il XXX\% delle recensioni sia positivo, dimostrando quindi che non ci sia una tendenza dominante verso un sentimento.
+%TODO: dire altro sulle 3 stelle?
 
 \subsection{Individuazione topics} %FORSE NON è CORRETTO METTERLA SOTTO IL CAPITOLO SENTIMENT ANALYSIS???
 %TODO:  Montamagno king of LDA
