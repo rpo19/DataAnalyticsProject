@@ -26,7 +26,6 @@ import operator
 import scipy
 import json
 import random
-import amatrix
 
 from random import randint
 from tqdm.notebook import tqdm
@@ -158,6 +157,10 @@ full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
 ```
 
 ```{python}
+giant = full_graph.subgraph(list(max(nx.connected_components(full_graph), key=len)))
+```
+
+```{python}
 statistics.mean(list(dict(list(nx.degree(full_graph))).values()))
 ```
 
@@ -174,14 +177,69 @@ nx.degree_assortativity_coefficient(full_graph)
 ```
 
 ```{python}
-matrix = nx.degree_mixing_matrix(full_graph)
-matrix
+matrix = nx.degree_mixing_matrix(giant)
 ```
 
 ```{python}
+
+```
+
+```{python}
+plt.figure(figsize=(10,10))
 plt.imshow(matrix)
 plt.gca().invert_yaxis()
 plt.colorbar()
+```
+
+```{python}
+degree_cent = nx.degree_centrality(full_graph)
+betweenness_cent = nx.betweenness_centrality(full_graph)
+closeness_cent = nx.closeness_centrality(full_graph)
+eigen_cent = nx.eigenvector_centrality(full_graph)
+```
+
+```{python}
+centralitiesFullGraph = pd.DataFrame({'_id': list(degree_cent.keys()), 'degree': list(degree_cent.values()), \
+              'betweenness': list(betweenness_cent.values()), \
+             'closeness_cent': list(closeness_cent.values()), \
+             'eigen_cent': list(eigen_cent.values())})
+```
+
+```{python}
+centralitiesFullGraph.to_csv('../networkData/centrailitiesFullGraph.csv')
+```
+
+```{python}
+filteredDataCent = data.loc[data['_id'].isin(centralitiesFullGraph.sort_values('degree', ascending=False).head(5)['id'].values)]
+```
+
+```{python}
+pd.merge(filteredDataCent[['_id', 'title']], centralitiesFullGraph, on='_id').sort_values('degree', ascending=False).to_csv('../networkData/degreeFullGraph.csv', index=False, sep='\t')
+```
+
+```{python}
+pd.merge(filteredDataCent[['_id', 'title']], centralitiesFullGraph, on='_id').sort_values('closeness_cent', ascending=False).to_csv('../networkData/closenessFullGraph.csv', index=False, sep='\t')
+```
+
+```{python}
+centralitiesFullGraph.sort_values('degree', ascending=False).head(5)
+
+```
+
+```{python}
+centralitiesFullGraph.sort_values('betweenness', ascending=False).head(5)
+```
+
+```{python}
+centralitiesFullGraph.sort_values('closeness_cent', ascending=False).head(5)
+```
+
+```{python}
+centralitiesFullGraph.sort_values('eigen_cent', ascending=False).head(5)
+```
+
+```{python}
+data.loc[data['_id'] == 'B0792HCFTG']
 ```
 
 ```{python}
@@ -262,7 +320,12 @@ for category in categories_lbl:
     categories_stats = categories_stats.append({'category':category,'cardinality':cardinality, 'max_degree_id':max_degree_id,\
                              'max_degree':max_degree}, ignore_index = True)
     
+categories_stats
+```
 
+```{python}
+categories_stats.drop('most_positive_id', axis=1).head(5).to_csv('../networkData/categoriesStats.csv', index=False)
+pd.merge(categories_stats.drop('most_positive_id', axis=1).head(5), data[['_id', 'title']], left_on='max_degree_id', right_on='_id').to_csv('../networkData/categoriesStats.csv', sep='\t')
 ```
 
 ```{python}
