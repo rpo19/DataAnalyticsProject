@@ -34,15 +34,15 @@ In figura \ref{fig:distribuzioneGradi} è mostrata la distribuzione dei gradi. C
     \caption{Distribuzione dei gradi nella rete completa}\label{fig:distribuzioneGradi}
 \end{figure}
 
-Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di -0.0194 che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi hubs con grado più alto tendano a connettersi a nodi con grado basso. A conferma di ciò, in figura \ref{fig:hubs} si può osservare come i nodi di grado più alto\footnote{sono stati considerati come nodi gli hubs di grado almeno pari a 20} non tendano a connettersi tra loro. Da qui si può dire che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta e in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti del proprio vicinato. 
-%TODO: fig:assortativity con quel grafico K e K' che deve colorarsi su antidiagonale
+Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di -0.0194 che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi hubs con grado più alto tendano a connettersi a nodi con grado basso. A conferma di ciò, in figura \ref{fig:hubs} si può osservare come i nodi di grado più alto\footnote{sono stati considerati come nodi gli hubs di grado almeno pari a 20} non tendano a connettersi tra loro. È possibile quindi supporre che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta e in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti con grado basso. 
+%TODO: fig:assortativity con quel grafico K e K' che deve colorarsi su antidiagonale, vedere se si riesce a plottare bene
 \begin{figure}[H]
     \includegraphics[scale=0.3]{hubs}\centering
     \caption{Nodi hubs con grado almeno pari a 20 isolati dal resto della rete}\label{fig:hubs}
 \end{figure}
 
 %TODO: Prodotti centrali rete completa (degree/closeness)... ha senso anche prendere top X prodotti hub che hanno piu interazioni per capire a cosa gira intorno la porzione di amazon ?
-Per quanto riguarda i prodotti più centrali della rete i top XXX per la misura di YYY sono:
+Per quanto riguarda i prodotti più centrali della rete i top 5 per la misura di degree centrality sono:
 \begin{enumerate}
     \item x
     \item y
