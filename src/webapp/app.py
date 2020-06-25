@@ -298,7 +298,6 @@ def render_content(idProd):
         filteredDf = dfTimeSeries.loc[dfTimeSeries['product'] == idProd]
         trendCoeff = filteredDf['trendCoeff'].values[0]
         fig = fig = px.line(filteredDf, x='Period', y=['polarity', 'rating'],)
-        print(trendCoeff)
         trendLabel = 'Trending Down'
         trendIcon = 'trending_down'
         trendColor = '#E44133'

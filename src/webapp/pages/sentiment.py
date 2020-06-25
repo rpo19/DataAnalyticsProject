@@ -95,7 +95,6 @@ sentiment_layout = [
             ]
         ),
         html.Div(id='prod-series-output', style={'width': '90%'}),
-        #dcc.Graph(id='time-series-graph'),
     ], className='flex-column flex-center'),
     html.Div(id='tabs-sentiment-output')
     ], className='p-20', style={'paddingBottom':'100px'})

@@ -6,12 +6,13 @@ import dash_table
 import statistics
 import plotly.graph_objects as go
 import plotly.express as px
+import statistics
 
 def getNumberOfCategories():
     return len(df['category'].value_counts())
 
 def getAvgRating():
-    return round(statistics.mean(df['avg_rating']), 2)
+    return round(statistics.mean(df.loc[df['avg_rating'] != 0]['avg_rating'].values), 2)
 
 def getAvgPrice():
     return round(statistics.mean(df['price']), 2)
@@ -51,7 +52,7 @@ df_edges = (pd.read_csv('../networkData/cytoEdges.csv', sep='\t'))
 
 categories = pd.DataFrame({'category':df['category'].value_counts().keys(), 'value': df['category'].value_counts().values})
 histCategories = px.histogram(categories, x='category', y='value', color='category')
-histRating = px.bar(dfRatings, x='rating', y='value')
+histRating = px.histogram(df.loc[df['avg_rating'] != 0], x='avg_rating')
 histPrice = px.histogram(df[['price', 'title']], x='price')
 histFilteredReviews = px.bar(reviewsFilteredDistrib, x='rating', y='value')
 

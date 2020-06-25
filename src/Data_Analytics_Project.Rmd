@@ -26,6 +26,7 @@ import operator
 import scipy
 import json
 import random
+import amatrix
 
 from random import randint
 from tqdm.notebook import tqdm
@@ -46,6 +47,7 @@ from community import generate_dendrogram, community_louvain
 from networkx.algorithms.community import greedy_modularity_communities
 
 from wordcloud import WordCloud
+from pandas.plotting import scatter_matrix
 ```
 
 ## Data importation
@@ -105,6 +107,11 @@ def csvCreateEdges():
     print("# edges:", len(edges))
     print("# nodes:", len(nodes))
     
+    # remove also_viewed and merge also_bought with bought_together
+    edges = all_edges.loc[all_edges['weight'] != 1][['from','to']]
+    print("# edges:", len(edges))
+    edges
+    
     # remove edges with not available products
     for i, edge in edges.iterrows():
         if edge['to'] in data['_id'].values:
@@ -114,10 +121,6 @@ def csvCreateEdges():
 
     print("# edges:", len(edges))
     
-    # remove also_viewed and merge also_bought with bought_together
-    edges = all_edges.loc[all_edges['weight'] != 1][['from','to']]
-    print("# edges:", len(edges))
-    edges
     
     # remove symmetries
     edges = pd.DataFrame.from_records(list({tuple(sorted(item)) for item in edges.values}), columns=['from', 'to'])
@@ -126,7 +129,11 @@ def csvCreateEdges():
     print("# edges:", len(edges))
     
     # export edges for cytoscape
-    edges.to_csv("../networkData/cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
+    #edges.to_csv("../networkData/cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
+```
+
+```{python}
+csvCreateEdges()
 ```
 
 # Network analysis
@@ -151,6 +158,33 @@ full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
 ```
 
 ```{python}
+statistics.mean(list(dict(list(nx.degree(full_graph))).values()))
+```
+
+```{python}
+nx.average_clustering(full_graph)
+```
+
+```{python}
+nx.density(full_graph)
+```
+
+```{python}
+nx.degree_assortativity_coefficient(full_graph)
+```
+
+```{python}
+matrix = nx.degree_mixing_matrix(full_graph)
+matrix
+```
+
+```{python}
+plt.imshow(matrix)
+plt.gca().invert_yaxis()
+plt.colorbar()
+```
+
+```{python}
 connected_components = list(nx.connected_components(full_graph))
 connected_components 
 ```
@@ -163,7 +197,7 @@ connected_components
 
 ```{python}
 data = pd.DataFrame(data.loc[data['_id'].isin(list(full_graph))])
-data
+len(data)
 ```
 
 ```{python}
@@ -963,6 +997,15 @@ cleanReviews(data)
 ```
 
 ```{python}
+data['rating']
+```
+
+```{python}
+plt.figure(figsize=(18,6))
+data['rating'].plot(kind='hist')
+```
+
+```{python}
 verified = data.loc[data['verified'] == True]
 ```
 
@@ -1176,7 +1219,7 @@ import pyLDAvis
 ### Scommentare se si usano i dati iniziali
 
 ```{python}
-dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
+dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True)
 ```
 
 ```{python}
