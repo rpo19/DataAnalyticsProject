@@ -12,7 +12,7 @@ import plotly.express as px
 dfNeutral = pd.read_csv('../dataApp/neutralReviews.csv')
 dfSentProducts = pd.read_csv('../dataApp/sentimentProducts.csv', sep='\t')
 dfTimeSeries= pd.read_csv('../dataApp/dataReviewsMonthly.csv')
-fig = px.pie(dfNeutral, values='count', names='polarity', color_discrete_sequence=['#33A352','#E44133'])
+fig = px.pie(dfNeutral, values='count', names='polarity', color_discrete_sequence=['#E44133', '#33A352'])
 
 def readBow():
     with open('./model/bow.bin', 'rb') as f:

@@ -132,8 +132,8 @@ def update_output(submit_n_clicks, value):
         if value is not None:
             graphData = readGraph('community' + value + '.cyjs')
             communityStats = communities_stats.loc[communities_stats['id'] == int(value)]
-            topWords = list(ast.literal_eval(communityStats['top_words'][int(value)-1]).keys())[0:3]
-            topEnts= list(ast.literal_eval(communityStats['top_ents'][int(value)-1]).keys())[0:3]
+            topWords = list(communities_stats["top_words"][int(value)-1].keys())[0:3]
+            topEnts = list(communities_stats["top_ents"][int(value)-1].keys())[0:3]
             b64_image = communityStats["wordclouds"].values[0]
             return  [cyto.Cytoscape(
                     id='cytoscape',

@@ -28,6 +28,8 @@ import json
 import random
 import spacy
 import base64
+import re
+import os
 
 from random import randint
 from tqdm.notebook import tqdm
@@ -232,7 +234,7 @@ eigenvector_centrality = dict(sorted(eigenvector_centrality.items(), key=operato
 ## Compute stats for each category
 
 ```{python}
-def computeStats(data, graph):
+def computeStats(data, graph, main_df):
     subgraph = graph.subgraph(data)
     # cardinality
     cardinality = len(data)
@@ -240,25 +242,27 @@ def computeStats(data, graph):
     degree_centrality = nx.degree_centrality(subgraph)
     degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
     max_degree_id = list(degree_centrality.keys())[0]
+    max_degree_title = main_df.loc[main_df["_id"] == max_degree_id]["title"]
     # degree
     degrees = dict(subgraph.degree)
     degrees = dict(sorted(degrees.items(), key=operator.itemgetter(1),reverse=True))
     max_degree = list(degrees.values())[0]
     # TODO (maybe): most positive/negative products by sentiment
     # TODO (maybe): reviews number
-    return cardinality, max_degree_id, max_degree
+    return cardinality, max_degree_id, max_degree, max_degree_title
 
           
 ```
 
 ```{python}
-categories_stats = pd.DataFrame(columns = ['category','cardinality','max_degree_id', 'max_degree', 'most_positive_id'])
+categories_stats = pd.DataFrame(columns = ['category','cardinality','max_degree_id', 'max_degree', \
+                                           'max_degree_title', 'most_positive_id'])
 
 for category in categories_lbl:
     data_by_category = data.loc[data['category'] == category]['_id'].values
-    cardinality, max_degree_id, max_degree = computeStats(data_by_category, full_graph)
+    cardinality, max_degree_id, max_degree, max_degree_title = computeStats(data_by_category, full_graph, data)
     categories_stats = categories_stats.append({'category':category,'cardinality':cardinality, 'max_degree_id':max_degree_id,\
-                             'max_degree':max_degree}, ignore_index = True)
+                             'max_degree':max_degree, 'max_degree_title': max_degree_title}, ignore_index = True)
     
 
 ```
@@ -387,34 +391,27 @@ communities = [list(x) for x in communities]
 ```
 
 ```{python}
-#communities_stats['category'].count()
-#communities_stats.loc[communities_stats['dominant_category'].isnull()].sort_values('cardinality', ascending=False)['categories_distribution'].values
-#type(communities_stats.iloc[1])
-#communities_stats
 stop_words = nltk.corpus.stopwords.words('italian') + nltk.corpus.stopwords.words('english')
+
+stop_words += ["nero","bianco","giallo","rosso",
+               "verde","blu","celeste","azzurro",
+               "rosa","viola","arancione","arancio",
+               "marrone","grigi","uomo","donna"]
+
 punctuation = string.punctuation + "-"
 
 nlp = spacy.load("it_core_news_sm")
+
+pattern_numbers = r'^(?:(?:\d+,?)+(?:\.?\d+)?)$'
+regex_numbers = re.compile(pattern_numbers)
 
 def flatten(listoflists):
     return [item for list in listoflists for item in list]
 
 def processTitlesSpacy(titles):
-    ret = titles.apply(lambda x: [ent.text for ent in nlp(x).ents])
-    ret = Counter(flatten(ret))
-    ret = dict(ret.most_common(50))
-    return ret
-
-def processTitles(titles):
-    ret = titles.apply(nltk.tokenize.word_tokenize)
-    
-    ret = ret.apply(lambda x: [word for word in x if len(word)>2 and \
-                               word.lower() not in punctuation])
-    #ret = ret.apply(lambda x: [ word.replace(',', '') for word in x])
-    ret = ret.apply(nltk.pos_tag)
-    ret = ret.apply(nltk.ne_chunk)
-    ret = ret.apply(lambda x : [w[0] if isinstance(w, tuple) else " ".join(t[0] for t in w) for w in x])
-    ret = ret.apply(lambda x: [word.lower() for word in x if len(word)>2 and word.lower() not in stop_words])
+    ret = titles.apply(lambda x: [ent.text for ent in nlp(x).ents if len(ent.text)>2 and \
+                                  ent.text.lower() not in stop_words and \
+                                  not re.match(regex_numbers, ent.text)])
     ret = Counter(flatten(ret))
     ret = dict(ret.most_common(50))
     return ret
@@ -422,7 +419,8 @@ def processTitles(titles):
 def processTitlesSimple(titles):
     ret = titles.apply(nltk.tokenize.word_tokenize)
     ret = ret.apply(lambda x: [word.lower() for word in x if len(word)>2 and word.lower() \
-                               not in punctuation and word.lower() not in stop_words])
+                               not in punctuation and word.lower() not in stop_words and \
+                               not re.match(regex_numbers, word)])
     ret = Counter(flatten(ret))
     return dict(ret.most_common(50))
 
@@ -437,18 +435,20 @@ def word_cloud_to_base64(word_counter):
 
 ```{python}
 def getCommunitiesStats():
-    communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id', 'max_degree', 'avg_clust', 'top_words'])
+    communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id',\
+                                                'max_degree', 'max_degree_title', 'avg_clust', 'top_words'])
     for i, community in enumerate(communities):
         # dominant category
         categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
         #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
         dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
         # compute stats
-        cardinality, max_degree_id, max_degree = computeStats(community, full_graph)
+        cardinality, max_degree_id, max_degree, max_degree_title = computeStats(community, full_graph, data)
         avg_clust = nx.average_clustering(full_graph.subgraph(community))
         communities_stats = communities_stats.append({'id': i+1,'community': community,'dominant_category': dominant_category,\
                                                       'categories_distribution':categories_distribution,'cardinality':cardinality,\
-                                                      'max_degree_id':max_degree_id, 'max_degree':max_degree, 'avg_clust': avg_clust}, ignore_index = True)
+                                                      'max_degree_id':max_degree_id, 'max_degree':max_degree, \
+                                                      'max_degree_title': max_degree_title, 'avg_clust': avg_clust}, ignore_index = True)
 
     # Assign community to each product
     for _, community in communities_stats.iterrows():
@@ -462,14 +462,13 @@ def getCommunitiesStats():
     communities_stats["top_ents"] = communities_stats["community"].apply(\
                                             lambda x: processTitlesSpacy(data.loc[data['_id'].isin(x)]["title"]))
 
-    communities_stats["wordclouds"] = communities_stats.iloc[0:9]["top_words"].apply(word_cloud_to_base64)
+    communities_stats["wordclouds"] = communities_stats.iloc[0:10]["top_words"].apply(word_cloud_to_base64)
+    
+    return communities_stats
 ```
 
 ## Average clustering coefficient 
 
-```{python}
-np.average(communities_stats['avg_clust'].values, weights=communities_stats['cardinality'].values)
-```
 
 ### Write cytoscape products csv
 
@@ -481,15 +480,21 @@ np.average(communities_stats['avg_clust'].values, weights=communities_stats['car
 
 ```{python}
 try:
-    communities_stats = pd.read_csv("../dataApp/communities_stats.csv", sep='\t')
-    # TODO top ents words are strings
+    communities_stats = pd.read_pickle("../dataApp/communities_stats.pickle")
 except FileNotFoundError:
     communities_stats = getCommunitiesStats()
-    communities_stats.to_csv("../dataApp/communities_stats.csv", sep='\t')
+    communities_stats.to_pickle("../dataApp/communities_stats.pickle")
 ```
 
 ```{python}
-communities_stats.iloc[15]["top_words"]
+if not os.path.isfile("../data/communities_stats_latex.csv"):
+    communities_stats[["id", "dominant_category", "cardinality", "max_degree", \
+                      "max_degree_title", "avg_clust", "top_words", "top_ents"]]\
+    .to_csv("../data/communities_stats_latex.csv", sep="\t", index=False)
+```
+
+```{python}
+np.average(communities_stats['avg_clust'].values, weights=communities_stats['cardinality'].values)
 ```
 
 ```{python}
@@ -499,6 +504,11 @@ wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top
 plt.figure(figsize = (10, 8), facecolor = None) 
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
+```
+
+```{python}
+topWords = list(communities_stats["top_words"][1].keys())[0:3]
+topWords
 ```
 
 ```{python}

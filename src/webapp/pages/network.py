@@ -11,7 +11,7 @@ def readGraph(network):
         return json.load(prova)
         #return json_prova['elements']['nodes'] + json_prova['elements']['edges']
 
-communities_stats = pd.read_csv("../dataApp/communities_stats.csv", sep='\t')
+communities_stats = pd.read_pickle("../dataApp/communities_stats.pickle")
 
 
 network_layout = [
