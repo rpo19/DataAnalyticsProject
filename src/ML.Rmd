@@ -5,7 +5,7 @@ jupyter:
       extension: .Rmd
       format_name: rmarkdown
       format_version: '1.2'
-      jupytext_version: 1.5.0
+      jupytext_version: 1.4.2
   kernelspec:
     display_name: Python 3
     language: python
@@ -30,6 +30,7 @@ from wordcloud import WordCloud
 from datetime import datetime
 import pickle
 import re
+import os
 
 #progress bar
 from tqdm import tqdm, tqdm_notebook
@@ -43,6 +44,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import cross_validate
+from sklearn.metrics import accuracy_score, confusion_matrix
+
 
 #LDA
 import gensim
@@ -57,174 +60,6 @@ import pyLDAvis
 stop_words=nltk.corpus.stopwords.words('italian')
 punctuation = string.punctuation
 punctuation = punctuation + "..."+ "''" + "``" + "--"
-```
-
-### Scommentare se si usano i dati iniziali
-
-```{python}
-dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True)
-```
-
-```{python}
-dataReviewsChunk
-```
-
-```{python}
-chunk_list = []  # append each chunk df here 
-
-# Each chunk is in df format
-for chunk in dataReviewsChunk:
-
-    chunk_list.append(chunk)
-```
-
-```{python}
-dataReviews = pd.concat(chunk_list)
-```
-
-```{python}
-dataReviews.head()
-```
-
-```{python}
-len(dataReviews)
-```
-
-```{python}
-## elimino recensioni non verificate e quelli con helpfull == 0
-```
-
-```{python}
-def convert_to_int(field):
-    return field["$numberInt"]
-```
-
-```{python}
-dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)
-```
-
-```{python}
-dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)
-```
-
-```{python}
-def getDataReviewsReduced():
-    try:
-        dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
-    except FileNotFoundError:
-        dataReviewsReduced = dataReviews.loc[dataReviews["verified"] == True]
-        dataReviewsReduced = dataReviewsReduced.loc[dataReviews["helpful"] != 0]
-        dataReviewsReduced.to_csv("../data/dati_ridotti.csv", sep=",")
-    return dataReviewsReduced
-dataReviewsReduced = getDataReviewsReduced()
-```
-
-### Dati filtrati (vedi sopra)
-
-```{python}
-dataReviewsReduced= getDataReviewsReduced()
-```
-
-```{python}
-counts = dataReviewsReduced["rating"].value_counts()
-```
-
-```{python}
-counts.values
-```
-
-```{python}
-x = counts._index
-print(x)
-y = counts.values
-print(y)
-```
-
-```{python}
-fig = plt.figure(figsize=(18,6))
-sns.barplot(x=counts._index, y=counts.values)
-plt.title("Rating distribution")
-plt.show()
-```
-
-```{python}
-print("Proportion of review with score=1: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 1]) / len(dataReviewsReduced)*100))
-print("Proportion of review with score=2: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 2]) / len(dataReviewsReduced)*100))
-print("Proportion of review with score=3: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 3]) / len(dataReviewsReduced)*100))
-print("Proportion of review with score=4: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 4]) / len(dataReviewsReduced)*100))
-print("Proportion of review with score=5: {}%".format(len(dataReviewsReduced[dataReviewsReduced.rating == 5]) / len(dataReviewsReduced)*100))
-```
-
-```{python}
-# recensioni vuote
-dataReviewsReduced[dataReviewsReduced["body"].str.len() == 0]
-```
-
-```{python}
-dataReviewsReduced.loc[dataReviewsReduced['rating'] == 3 , 'polarity'] = 'neutral'
-dataReviewsReduced.loc[dataReviewsReduced['rating'] > 3 , 'polarity'] = 'positive'
-dataReviewsReduced.loc[dataReviewsReduced['rating'] < 3 , 'polarity'] = 'negative'
-```
-
-```{python}
-counts = dataReviewsReduced["polarity"].value_counts()
-fig = plt.figure(figsize=(18,6))
-sns.barplot(x=counts._index, y=counts.values)
-plt.title("Rating distribution")
-plt.show()
-```
-
-```{python}
-positive_reviews = dataReviewsReduced.loc[dataReviewsReduced['polarity'] == "positive" ] 
-```
-
-```{python}
-positive_reviews["cleaned"] = positive_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
-positive_reviews['token']=positive_reviews['cleaned'].progress_apply(word_tokenize)
-```
-
-```{python}
-positive_reviews["token"]
-```
-
-```{python}
-negative_reviews = dataReviewsReduced.loc[dataReviewsReduced['polarity'] == "negative"] 
-```
-
-```{python}
-negative_reviews["cleaned"] = negative_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
-negative_reviews['token'] = negative_reviews['cleaned'].progress_apply(word_tokenize)
-```
-
-```{python}
-word_Cloud(positive_reviews['token'])
-```
-
-```{python}
-word_Cloud(negative_reviews['token'])
-```
-
-```{python}
-def undersampling(df):
-    positive, negative, _ = df.polarity.value_counts()
-    df_positive = df[df.polarity == 'positive']
-    df_positive = df_positive.sample(negative, random_state=1)
-    df_negative = df[df.polarity == 'negative']
-    df = pd.concat([df_positive, df_negative])
-    #df = df.sample(frac=1)
-    return df
-```
-
-```{python}
-new_dataReviews = undersampling(dataReviewsReduced)
-```
-
-```{python}
-counts = new_dataReviews["polarity"].value_counts()
-fig = plt.figure(figsize=(18,6))
-sns.barplot(x=counts._index, y=counts.values)
-plt.title("Rating distribution")
-plt.show()
 ```
 
 ### Funzioni varie
@@ -277,24 +112,192 @@ def word_Cloud(sentences):
     plt.show()
 ```
 
-### Tokenizzazione
+## Data import
 
 ```{python}
-new_dataReviews['token']=new_dataReviews['body'].progress_apply(word_tokenize)
+dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
 ```
 
 ```{python}
-#new_dataReviews['token'] #Name: token, Length: 130648, dtype: object
+dataReviewsChunk
+```
+
+```{python}
+chunk_list = []  # append each chunk df here 
+
+# Each chunk is in df format
+for chunk in dataReviewsChunk:
+
+    chunk_list.append(chunk)
+```
+
+```{python}
+dataReviews = pd.concat(chunk_list)
+```
+
+```{python}
+dataReviews.head()
+```
+
+```{python}
+len(dataReviews)
+```
+
+## elimino recensioni non verificate e quelli con helpful == 0
+
+```{python}
+def convert_to_int(field):
+    return field["$numberInt"]
+```
+
+```{python}
+dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)
+```
+
+```{python}
+dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)
+```
+
+```{python}
+def getDataReviewsReduced():
+    try:
+        dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+    except FileNotFoundError:
+        dataReviewsReduced = dataReviews.loc[dataReviews["verified"] == True]
+        dataReviewsReduced = dataReviewsReduced.loc[dataReviews["helpful"] != 0]
+        dataReviewsReduced.to_csv("../data/dati_ridotti.csv", sep=",")
+    return dataReviewsReduced
+dataReviewsReduced = getDataReviewsReduced()
+```
+
+### Analysis
+
+```{python}
+counts = dataReviews["rating"].value_counts()
+```
+
+```{python}
+counts.values
+```
+
+```{python}
+x = counts._index
+print(x)
+y = counts.values
+print(y)
+```
+
+```{python}
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+```{python}
+print("Proportion of review with score=1: {}%".format(len(dataReviews[dataReviews.rating == 1]) / len(dataReviews)*100))
+print("Proportion of review with score=2: {}%".format(len(dataReviews[dataReviews.rating == 2]) / len(dataReviews)*100))
+print("Proportion of review with score=3: {}%".format(len(dataReviews[dataReviews.rating == 3]) / len(dataReviews)*100))
+print("Proportion of review with score=4: {}%".format(len(dataReviews[dataReviews.rating == 4]) / len(dataReviews)*100))
+print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReviews.rating == 5]) / len(dataReviews)*100))
+```
+
+```{python}
+# empty reviews
+dataReviews[dataReviews["body"].str.len() == 0]
+```
+
+#### Convert rating into polarity label (positive/neutral/negative)
+
+```{python}
+dataReviews.loc[dataReviews['rating'] == 3 , 'polarity'] = 'neutral'
+dataReviews.loc[dataReviews['rating'] > 3 , 'polarity'] = 'positive'
+dataReviews.loc[dataReviews['rating'] < 3 , 'polarity'] = 'negative'
+```
+
+```{python}
+counts = dataReviews["polarity"].value_counts()
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+```{python}
+positive_reviews = dataReviews.loc[dataReviews['polarity'] == "positive" ] 
+```
+
+```{python}
+# reduce dataset to save time
+positive_reviews = positive_reviews.sample(10000)
+```
+
+```{python}
+# on the entire dataset -> slow
+positive_reviews["cleaned"] = positive_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+positive_reviews['token']= positive_reviews['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+negative_reviews = dataReviews.loc[dataReviews['polarity'] == "negative"] 
+```
+
+```{python}
+# reduce dataset to save time
+negative_reviews = negative_reviews.sample(10000)
+```
+
+```{python}
+# on the entire dataset -> slow
+negative_reviews["cleaned"] = negative_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+negative_reviews['token'] = negative_reviews['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+word_Cloud(positive_reviews['token'])
+```
+
+```{python}
+word_Cloud(negative_reviews['token'])
+```
+
+```{python}
+def undersampling(df):
+    positive, negative, _ = df.polarity.value_counts()
+    df_positive = df[df.polarity == 'positive']
+    df_positive = df_positive.sample(negative, random_state=1)
+    df_negative = df[df.polarity == 'negative']
+    df = pd.concat([df_positive, df_negative])
+    return df
+```
+
+```{python}
+dataReviewsUndersampled = undersampling(dataReviews)
+```
+
+```{python}
+counts = dataReviewsUndersampled["polarity"].value_counts()
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+### Tokenization
+
+```{python}
+dataReviewsUndersampled['token']=dataReviewsUndersampled['body'].progress_apply(word_tokenize)
 ```
 
 ### Stopwords
 
 ```{python}
-stop_words
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["token"]\
+    .progress_apply(lambda sentence : [word for word in sentence if word.lower() not in stop_words])
 ```
 
 ```{python}
-new_dataReviews["cleaned"] = new_dataReviews["token"].progress_apply(lambda sentence : [word for word in sentence if word.lower() not in stop_words])
+plot_common_tokens(dataReviewsUndersampled["cleaned"], "Most Common Tokens from Reviews without StopWords")
 ```
 
 ### Punctuation
@@ -304,7 +307,12 @@ print(punctuation)
 ```
 
 ```{python}
-new_dataReviews["cleaned"] = new_dataReviews["cleaned"].progress_apply(lambda sentence : [word for word in sentence if word not in punctuation])
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["cleaned"]\
+    .progress_apply(lambda sentence : [word for word in sentence if word not in punctuation])
+```
+
+```{python}
+plot_common_tokens(dataReviewsUndersampled["cleaned"], "Most Common Tokens from Reviews without Punctuation")
 ```
 
 ### Numbers
@@ -314,37 +322,36 @@ regex_numbers = r'(?:(?:\d+,?)+(?:\.?\d+)?)'
 ```
 
 ```{python}
-new_dataReviews["cleaned"] = new_dataReviews["cleaned"].progress_apply(lambda sentence : [re.sub(regex_numbers,"",word) for word in sentence if re.sub(regex_numbers,"",word) != ""])
-```
-
-### Eliminazione token di lunghezza 1
-
-```{python}
-new_dataReviews["cleaned"] = new_dataReviews["cleaned"].progress_apply(lambda sentence : [word for word in sentence if len(word)> 1])
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["cleaned"].progress_apply(\
+               lambda sentence : [re.sub(regex_numbers,"",word) \
+                              for word in sentence if re.sub(regex_numbers,"",word) != ""])
 ```
 
 ```{python}
-# tutto il processing si può fare in un unico loop TODO
+plot_common_tokens(dataReviewsUndersampled["cleaned"], "Most Common Tokens from Reviews without Numbers")
+```
+
+### Delete single char tokens
+
+```{python}
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["cleaned"]\
+        .progress_apply(lambda sentence : [word for word in sentence if len(word)> 1])
 ```
 
 ```{python}
-#new_dataReviews.to_csv("dati_puliti.csv")
+plot_common_tokens(dataReviewsUndersampled['cleaned'],'Most Common Tokens used in Reviews without single char tokens')
 ```
 
 ```{python}
-plot_common_tokens(new_dataReviews['cleaned'],'Most Common Tokens used in Reviews')
+len(dataReviewsUndersampled["cleaned"])
 ```
 
 ```{python}
-len(new_dataReviews["cleaned"])
+word_Cloud(dataReviewsUndersampled["cleaned"])
 ```
 
 ```{python}
-word_Cloud(new_dataReviews["cleaned"])
-```
-
-```{python}
-sentences = (list(itertools.chain(new_dataReviews["cleaned"])))
+sentences = (list(itertools.chain(dataReviewsUndersampled["cleaned"])))
 flat_sentences = flat_list(sentences)
 counts = Counter(flat_sentences)
 counts.most_common()
@@ -362,66 +369,46 @@ def stemming_token(sentence,stemmer):
 ```
 
 ```{python}
-new_dataReviews["stemming"] = new_dataReviews["cleaned"].progress_apply(lambda x: stemming_token(x, stemmer))
+dataReviewsUndersampled["stemming"] = dataReviewsUndersampled["cleaned"]\
+        .progress_apply(lambda x: stemming_token(x, stemmer))
 ```
 
 ```{python}
-#new_dataReviews = pd.read_csv("../data/dati_finali.csv", sep=",", index_col=0)
+dataReviewsUndersampled["stemming"]
 ```
 
 ```{python}
-### da fare solo se si legge il csv finale
+len(dataReviewsUndersampled)
 ```
 
 ```{python}
-#def str_to_list(sentence):
-#   return ast.literal_eval(sentence)
+plot_common_tokens(dataReviewsUndersampled['stemming'],'Most Common Tokens used in Reviews')
 ```
 
-```{python}
-#import ast
+## Model definition
 
-#new_dataReviews["stemming"] = new_dataReviews["stemming"].progress_apply(str_to_list)
-```
-
-```{python}
-new_dataReviews
-```
-
-```{python}
-len(new_dataReviews)
-```
 
 ### CountVectorizer
 
 ```{python}
 try:
     with open('../model/bow.bin', 'rb') as f:
-        # The protocol version used is detected automatically, so we do not
-        # have to specify it.
         bow = pickle.load(f)
+
 except FileNotFoundError:
     count_vect = CountVectorizer(stop_words=None, lowercase=True)
     #lowercase = true -> Convert all characters to lowercase before tokenizing.
     #stop_words = None -> If None, no stop words will be used
-    bow = count_vect.fit(new_dataReviews['stemming'].apply(lambda x: " ".join(x)))
-    
+    bow = count_vect.fit(dataReviewsUndersampled['stemming'].apply(lambda x: " ".join(x)))
     with open('../model/bow.bin', 'wb') as f:
         pickle.dump(bow, f, pickle.HIGHEST_PROTOCOL)
-        #s = pickle.dumps(model)
 ```
 
-```{python}
-count_vect
-```
+### Split dataset into train (80%) and test (20%)
 
 ```{python}
-bow.get_feature_names()[::2000]
-```
-
-```{python}
-#X_train, X_test, y_train, y_test = train_test_split(bow, new_dataReviews['polarity'], test_size=0.2, random_state=1)
-X_train, X_test, y_train, y_test = train_test_split(new_dataReviews['stemming'].apply(lambda x: " ".join(x)), new_dataReviews['polarity'], test_size=0.2, random_state=1)    
+X_train, X_test, y_train, y_test = train_test_split(dataReviewsUndersampled['stemming']\
+                .apply(lambda x: " ".join(x)), dataReviewsUndersampled['polarity'], test_size=0.2, random_state=1)    
 ```
 
 ```{python}
@@ -434,57 +421,50 @@ print("y train distribution:\n",y_train.value_counts())
 print("y train distribution:\n",y_test.value_counts())
 ```
 
+### Model fit
+
 ```{python}
-def train_and_evaluate_model():
+try:
+    with open('../model/model.bin', 'rb') as f:
+        model = pickle.load(f)
+except FileNotFoundError:
     model = LogisticRegression()
     model.fit(bow.transform(X_train), y_train)
 
-    predictions = model.predict(bow.transform(X_test))
-    print("predictions:\n{}".format(predictions))
+    with open('../model/model.bin', 'wb') as f:
+        pickle.dump(model, f, pickle.HIGHEST_PROTOCOL)
+```
 
-    my_accuracy_score = accuracy_score(y_test, predictions)
-    print("accuracy_score:\n{}".format(my_accuracy_score))
+### Evaluation
 
-    cmatrix = confusion_matrix(y_test, predictions)
-    print("confusion matrix:\n{}".format(cmatrix))
+```{python}
+predictions = model.predict(bow.transform(X_test))
+print("predictions:\n{}".format(predictions))
 
-    scores = cross_val_score(model, bow.transform(new_dataReviews['stemming'].apply(lambda x: " ".join(x))), new_dataReviews['polarity'], cv=10)
-    print("cross_val_score:\n{}".format(scores))
-    print("Accuracy cross_val_scores: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+my_accuracy_score = accuracy_score(y_test, predictions)
+print("accuracy_score:\n{}".format(my_accuracy_score))
 
-    scoring = ['precision_macro', 'recall_macro']
-    scores = cross_validate(model, bow.transform(new_dataReviews['stemming'].apply(lambda x: " ".join(x))), new_dataReviews['polarity'], scoring=scoring,
-                            cv=10, return_train_score=False)
-    print("cross_validate with scoring = {}:\n{}".format(scoring, scores))
-    print("Accuracy cross_validate with scoring ...: %0.2f (+/- %0.2f)" % (scores['test_precision_macro'].mean(), scores['test_precision_macro'].std() * 2)) 
+cmatrix = confusion_matrix(y_test, predictions)
+print("confusion matrix:\n{}".format(cmatrix))
+
+scores = cross_val_score(model, bow.transform(dataReviewsUndersampled['stemming'].apply(lambda x: " ".join(x))), dataReviewsUndersampled['polarity'], cv=10)
+print("cross_val_score:\n{}".format(scores))
+print("Accuracy cross_val_scores: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+
+scoring = ['precision_macro', 'recall_macro']
+scores = cross_validate(model, bow.transform(dataReviewsUndersampled['stemming'].apply(lambda x: " ".join(x))), dataReviewsUndersampled['polarity'], scoring=scoring,
+                        cv=10, return_train_score=False)
+print("cross_validate with scoring = {}:\n{}".format(scoring, scores))
 ```
 
 ### Use model with costum sentences
 
 ```{python}
-
-```
-
-```{python}
-sentence="belle le scarpe e le stringhe per il colore , però sono comode"
+sentence="Prodotto di qualità mediocre, ma per il prezzo che ha fa il suo lavoro... Consigliato per chi vuole spendere poco"
 ```
 
 ```{python}
 clean_sentence(sentence)
-```
-
-```{python}
-# codice per caricare il modello per convertire frasi in array
-try:
-    with open('../model/bow.bin', 'rb') as f:
-        # The protocol version used is detected automatically, so we do not
-        # have to specify it.
-        bow = pickle.load(f)
-except FileNotFoundError:
-    # to save model in file.bin
-    train_and_evaluate_model()
-    with open('../model/model2.bin', 'wb') as f:
-        pickle.dump(model, f, pickle.HIGHEST_PROTOCOL)
 ```
 
 ```{python}
@@ -495,479 +475,117 @@ print(bow.transform([clean_sentence(sentence)]))
 model.predict(bow.transform([clean_sentence(sentence)]))
 ```
 
-### LDA
+### 3-starred reviews sentiment classification
 
 ```{python}
-dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+dataReviews_neutral = dataReviews.loc[dataReviews["rating"]==3]
 ```
 
 ```{python}
-dataReviews["product"].value_counts()[1:5]
+dataReviews_neutral
+```
+
+### Transforming sentences to arrays
+
+```{python}
+dataReviews_neutral["polarity"] = dataReviews_neutral["body"]\
+    .progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)])))
 ```
 
 ```{python}
-#products_most_reviewed = dataReviews["product"].value_counts()[550:555]
+dataReviews_neutral["polarity"]
 ```
 
 ```{python}
-#most_product_reviews = dataReviews.loc[dataReviews['product'].isin(products_most_reviewed.index)]
+print("Proportion of review with score=3 that is positive: {}%".format(len(dataReviews_neutral[dataReviews_neutral.polarity == "positive"]) / len(dataReviews_neutral)*100))
+print("Proportion of review with score=3 that is negative: {}%".format(len(dataReviews_neutral[dataReviews_neutral.polarity == "negative"]) / len(dataReviews_neutral)*100))
 ```
 
 ```{python}
-#most_product_reviews.columns
-```
-
-```{python}
-#len(most_product_reviews)
-```
-
-```{python}
-#most_product_reviews["cleaned"] = most_product_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
-```
-
-```{python}
-#https://towardsdatascience.com/evaluate-topic-model-in-python-latent-dirichlet-allocation-lda-7d57484bb5d0
-```
-
-```{python}
-prod = "B0058BXHWE" 
-#new_dataReviews_prodotto = new_dataReviews[new_dataReviews["product"]  == prod]
-```
-
-```{python}
-#prod="B0000AP6LD"
-dataReviews_prod = dataReviews[dataReviews["product"]  == prod]
-```
-
-```{python}
-dataReviews_prod
-```
-
-```{python}
-dataReviews_prod["cleaned"] = dataReviews_prod["body"].progress_apply(lambda x: clean_sentence(x,False))
-```
-
-```{python}
-dataReviews_prod['token']=dataReviews_prod['cleaned'].progress_apply(word_tokenize)
-```
-
-```{python}
-def compute_coherence_values(corpus, dictionary, num_topics, texts):
-    
-    lda_model = gensim.models.LdaMulticore(corpus=corpus,
-                                           id2word=dictionary,
-                                           num_topics=num_topics, 
-                                           random_state=1)
-    
-    coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, dictionary=dictionary, coherence='c_v')
-    
-    return coherence_model_lda.get_coherence()
-```
-
-```{python}
-def optimal_topics(dictionary, corpus, texts, max_topic):
-    k=1
-    c_v = []
-    for num_topics in range(1, max_topic):
-        print("number of topics {}".format(k))
-        coherence =  compute_coherence_values(corpus, dictionary, num_topics, texts)
-        
-        c_v.append(coherence)
-        k += 1
-    x = range(1, max_topic)
-    plt.plot(x, c_v)
-    plt.xlabel("num_topics")
-    plt.ylabel("Coherence score")
-    plt.legend(("c_v"), loc='best')
-    plt.show()
-
-    return c_v
-```
-
-```{python}
-def compute_LDA(reviews):
-    texts = reviews['token']
-    text_data = []
-    print("start bigram")
-    for sentence in texts:
-        bigram = list(nltk.bigrams(sentence))
-        tokens = []
-        for i in bigram:
-            tokens.append((''.join([w + ' ' for w in i])).strip())
-            text_data.append(tokens)
-    print("end bigram")
-    texts=text_data
-    print("start computation of dictionary")
-    dictionary = corpora.Dictionary(texts)
-    print("end computation of dictionary")
-    print("start computation of corpus")
-    corpus = [dictionary.doc2bow(text) for text in texts]
-    print("end computation of corpus")
-
-    print("start computations of optimal number of topics")
-    #num_topics = optimal_topics(dictionary=dictionary, corpus=corpus, texts=texts, max_topic=10)
-    print("end computations of optimal number of topics")
-
-    #ntopics=num_topics.index(max(num_topics))+1
-    #ldamodel = gensim.models.ldamulticore.LdaMulticore(corpus, num_topics=ntopics, id2word=dictionary)
-    ldamodel = gensim.models.LdaMulticore(corpus=corpus,
-                                           id2word=dictionary,
-                                           num_topics=1, 
-                                           random_state=1)
-    try:
-        LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
-    except:
-        LDAvis_prepared=None
-    
-    return ldamodel, corpus, dictionary, LDAvis_prepared
-```
-
-```{python}
-ris = compute_LDA(dataReviews_prod)
-```
-
-```{python}
-lda, corpus, dictionary, ldavis= ris
-```
-
-```{python}
-topics = lda.print_topics()
-x = lda.show_topics(num_topics=1, num_words=15, formatted=False)
-topics_words = [[wd[0] for wd in tp[1]] for tp in x]
-for sentence in topics_words:
-    print(sentence)
-```
-
-```{python}
-pyLDAvis.enable_notebook()
-#LDAvis_prepared = pyLDAvis.gensim.prepare(lda, corpus, dictionary)
-ldavis
-```
-
-```{python}
-pyLDAvis.enable_notebook()
-LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
-LDAvis_prepared
-```
-
-```{python}
-lda_models=[]
-corpus_reviews=[]
-dictionary_reviews=[]
-LDAvis_reviews=[]
-count=1
-for prod in tqdm(products_most_reviewed.index):
-    print("LDA for product {}".format(count))
-    product_reviews = most_product_reviews[most_product_reviews["product"]  == prod]
-    print(prod)
-    model, corpus, dictionary, ldavis = compute_LDA(product_reviews)
-    lda_models.append(model)
-    corpus_reviews.append(corpus)
-    dictionary_reviews.append(dictionary)
-    LDAvis_reviews.append(ldavis)
-    count += 1
-```
-
-```{python}
-lda_models
-```
-
-### unigrammi
-
-```{python}
-dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
-```
-
-```{python}
-prod="B01H1LOZTC"
-dataReviews_prod = dataReviews[dataReviews["product"]  == prod]
-```
-
-```{python}
-dataReviews_prod["cleaned"] = dataReviews_prod["body"].progress_apply(lambda x: clean_sentence(x,False))
-dataReviews_prod['token']=dataReviews_prod['cleaned'].progress_apply(word_tokenize)
-```
-
-```{python}
-len(dataReviews_prod['token'])
-```
-
-```{python}
-texts=dataReviews_prod['token']
-dictionary = corpora.Dictionary(texts) 
-corpus = [dictionary.doc2bow(text) for text in texts]
-```
-
-```{python}
-num_topics = optimal_topics(dictionary=dictionary, corpus=corpus, texts=texts, max_topic=10)
-```
-
-```{python}
-ntopics=num_topics.index(max(num_topics))+1
-```
-
-```{python}
-ntopics
-```
-
-```{python}
-ldamodel = gensim.models.ldamulticore.LdaMulticore(corpus, num_topics=ntopics, id2word=dictionary)
-```
-
-```{python}
-#ldamodel.save('ldamodel1.gensim')
-```
-
-```{python}
-topics = ldamodel.print_topics()
-```
-
-```{python}
-topics
-```
-
-```{python}
-x = ldamodel.show_topics(num_topics=2, num_words=15, formatted=False)
-topics_words = [[wd[0] for wd in tp[1]] for tp in x]
-```
-
-```{python}
-for sentence in topics_words:
-    print(" ".join(sentence))
-```
-
-```{python}
-# Visualize the topics
-pyLDAvis.enable_notebook()
-LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
-LDAvis_prepared
-```
-
-#### LDA su bigrammi
-
-```{python}
-dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
-```
-
-```{python}
-#prod="B000RVYIBO" # -> ok
-#prod="B00SYM2F4U" # -> 
-#prod="B07DMJPV31" #-> ok
-#prod="B00LPHUTOO" #-> ok
-#prod="B01EWQ10D8" #->ok
-#prod="B0058BXHWE" #-> ok
-prod="B01H1LOZTC" #-> ok
-dataReviews_prod = dataReviews[dataReviews["product"]  == prod]
-```
-
-```{python}
-dataReviews_prod["cleaned"] = dataReviews_prod["body"].progress_apply(lambda x: clean_sentence(x,False))
-```
-
-```{python}
-dataReviews_prod['token']=dataReviews_prod['cleaned'].progress_apply(word_tokenize)
-```
-
-```{python}
-dataReviews_prod["token"] 
-```
-
-```{python}
-text_data = []
-for sentence in dataReviews_prod["token"] :
-    #print(sentence)
-    bigram = list(nltk.bigrams(sentence))
-    #print(bigram)
-    tokens = []
-    for i in bigram:
-        tokens.append((''.join([w + ' ' for w in i])).strip())
-    text_data.append(tokens)
-```
-
-```{python}
-text_data
-```
-
-```{python}
-texts=text_data
-dictionary = corpora.Dictionary(texts) 
-corpus = [dictionary.doc2bow(text) for text in texts]
-```
-
-```{python}
-num_topics = optimal_topics(dictionary=dictionary, corpus=corpus, texts=texts, max_topic=10)
-```
-
-```{python}
-ntopics=num_topics.index(max(num_topics))+1
-ldamodel = gensim.models.ldamulticore.LdaMulticore(corpus, num_topics=ntopics, id2word=dictionary)
-```
-
-```{python}
-topics = ldamodel.print_topics()
-x = ldamodel.show_topics(num_topics=3, num_words=15, formatted=False)
-topics_words = [[wd[0] for wd in tp[1]] for tp in x]
-for sentence in topics_words:
-    print(sentence)
-```
-
-```{python}
-pyLDAvis.enable_notebook()
-LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
-LDAvis_prepared
-```
-
-```{python}
-pyLDAvis.save_html(LDAvis_prepared, '../data/lda_display' + prod+".html")
+dataReviews_neutral["polarity"].value_counts().plot(kind="bar")
 
 ```
 
-### Sentimenti recensioni neutre
-
-```{python}
-#dataReviews_neutre = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
-dataReviews_neutre = dataReviewsReduced if dataReviewsReduced is not None else getDataReviewsReduced()
-```
-
-```{python}
-dataReviews_neutre = dataReviews_neutre.loc[dataReviews_neutre["rating"]==3]
-```
-
-```{python}
-dataReviews_neutre
-```
-
-```{python}
-dataReviews_neutre["polarity"] = dataReviews_neutre["body"].progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)])))
-```
-
-```{python}
-dataReviews_neutre["polarity"]
-```
-
-```{python}
-print("Proportion of review with score=3 that is positive: {}%".format(len(dataReviews_neutre[dataReviews_neutre.polarity == "positive"]) / len(dataReviews_neutre)*100))
-print("Proportion of review with score=3 that is negative: {}%".format(len(dataReviews_neutre[dataReviews_neutre.polarity == "negative"]) / len(dataReviews_neutre)*100))
-```
-
-```{python}
-dataReviews_neutre["polarity"].value_counts().plot(kind="bar")
-
-```
-
-### Prodotti nel tempo
-
-```{python}
-#dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
-dataReviews_neutre = dataReviewsReduced if dataReviewsReduced is not None else getDataReviewsReduced()
-```
-
-```{python}
-# look for good examples
-top_prods = dataReviews.groupby('product').count().sort_values('_id', ascending=False).head(4)
-```
-
-```{python}
-"B01ETRGE7M" in top_prods.index
-```
+### Products sentiment trend in time
 
 ```{python}
 # GOOD EXAMPLES:
-# B01ETRGE7M bello
-# B00LPHUTOO altalena
-# B01EWQ10D8 non male
-# B0058BXHWE resegono
-# ... non ne ho piu provati di quelli del box sopra
-prod = "B01ETRGE7M" 
-dataReviews_prodotti = dataReviews[dataReviews["product"].isin(top_prods.index)]
+top_products = dataReviews.groupby('product').count().sort_values('_id', ascending=False).head(4)
 ```
 
 ```{python}
-dataReviews_prodotti
+dataReviews_products = dataReviews[dataReviews["product"].isin(top_products.index)]
 ```
 
 ```{python}
-dataReviews_prodotti["Period"] = dataReviews_prodotti["date"].apply(lambda x: x.strftime('%Y-%m'))
+# adding Period field = year-month
+dataReviews_products["Period"] = dataReviews_products["date"].apply(lambda x: x.strftime('%Y-%m'))
 ```
 
 ```{python}
-dataReviews_prodotti["Period"].iloc[0]
+dataReviews_products["Period"].iloc[0]
 ```
 
 ```{python}
-dataReviews_prodotti
+dataReviews_products["polarity"] = dataReviews_products["body"]\
+    .progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)]))[0])
 ```
 
 ```{python}
-dataReviews_prodotti["polarity"] = dataReviews_prodotti["body"].progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)]))[0])
+dataReviews_products["polarityNum"] = dataReviews_products["polarity"].apply(lambda x: 1 if x == "positive" else 0)
 ```
 
 ```{python}
-dataReviews_prodotti
+dataReviews_products_month = dataReviews_products[["product", "Period", "rating", "polarityNum"]]\
+    .groupby(['product', 'Period']).mean()
 ```
 
 ```{python}
-dataReviews_prodotti["polarityNum"] = dataReviews_prodotti["polarity"].apply(lambda x: 1 if x == "positive" else 0)
+dataReviews_products_month
 ```
 
 ```{python}
-dataReviews_prodotti
+# scaling rating to 0-1
+dataReviews_products_month["rating"] = dataReviews_products_month["rating"] / 5
 ```
 
 ```{python}
-#dataReviews_prodotti_month = dataReviews_prodotti.groupby(['product', 'Period']).progress_apply(lambda x: len(x.loc[x["polarity"]=="positive"])/len(x)).to_frame("polarity")
-
-# use the rating intead of polarity
-dataReviews_prodotti_month = dataReviews_prodotti[["product", "Period", "rating", "polarityNum"]]\
-    .groupby(['product', 'Period']).mean()#.progress_apply(lambda x: len(x.loc[x["rating"]>3])/len(x))
-
-
-
+dataReviews_products_month.loc[top_products.index[0]].plot()
 ```
 
 ```{python}
-def trendline(df, order=1):
-    coeffs = np.polyfit(range(0,len(df.index)), df, order)
+dataReviews_products_month[["rating", "polarityNum"]]
+```
+
+### Computing reviews trendline over time
+
+```{python}
+# returns coefficient and points of the trendline
+def trendline(df):
+    coeffs = np.polyfit(range(0,len(df.index)), df, 1)
     #slope = coeffs[-2]
     return coeffs[-2], [coeffs[-2] * x + coeffs[-1] for x in range(0,len(df.index))]
-
-
-```
-
-```{python}
-dataReviews_prodotti_month["rating"] = dataReviews_prodotti_month["rating"] / 5
-```
-
-```{python}
-dataReviews_prodotti_month.loc["B00G9WHN12"].plot()
-```
-
-```{python}
-dataReviews_prodotti_month[["rating", "polarityNum"]]
 ```
 
 ```{python}
 coeffs = []
 lines = []
-for i in dataReviews_prodotti_month.index.get_level_values(0).value_counts().index:
-    coeff, line = trendline(dataReviews_prodotti_month.loc[i]["polarityNum"])
+for i in dataReviews_products_month.index.get_level_values(0).value_counts().index:
+    coeff, line = trendline(dataReviews_products_month.loc[i]["polarityNum"])
     lines += line
     coeffs += [coeff] * len(line)
 ```
 
 ```{python}
-len(lines)
+dataReviews_products_month["trendCoeff"] = coeffs
+dataReviews_products_month["trendLine"] = lines
 ```
 
 ```{python}
-dataReviews_prodotti_month["trendCoeff"] = coeffs
-dataReviews_prodotti_month["trendLine"] = lines
+dataReviews_products_month.loc[top_products.index[0]].plot()
 ```
 
 ```{python}
-dataReviews_prodotti_month.loc["B00G9WHN12"].plot()
-```
-
-```{python}
-dataReviews_prodotti_month.to_csv("../data/datarevies_prodotti_month.csv")
+if not os.path.isfile("../data/dataReviewsMonthly.csv"):
+    dataReviews_products_month.to_csv("../data/dataReviewsMonthly.csv")
 ```
