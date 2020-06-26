@@ -5,7 +5,7 @@ jupyter:
       extension: .Rmd
       format_name: rmarkdown
       format_version: '1.2'
-      jupytext_version: 1.4.2
+      jupytext_version: 1.5.0
   kernelspec:
     display_name: Python 3
     language: python
@@ -1108,6 +1108,12 @@ import pickle
 import pyLDAvis
 ```
 
+```{python}
+stop_words=nltk.corpus.stopwords.words('italian')
+punctuation = string.punctuation
+punctuation = punctuation + "..."+ "''" + "``" + "--"
+```
+
 ### Scommentare se si usano i dati iniziali
 
 ```{python}
@@ -1119,7 +1125,6 @@ dataReviewsChunk
 ```
 
 ```{python}
-
 chunk_list = []  # append each chunk df here 
 
 # Each chunk is in df format
@@ -1130,6 +1135,14 @@ for chunk in dataReviewsChunk:
 
 ```{python}
 dataReviews = pd.concat(chunk_list)
+```
+
+```{python}
+dataReviews.head()
+```
+
+```{python}
+len(dataReviews)
 ```
 
 ```{python}
@@ -1164,7 +1177,7 @@ dataReviewsReduced = getDataReviewsReduced()
 ### Dati filtrati (vedi sopra)
 
 ```{python}
-dataReviewsReduced
+dataReviewsReduced= getDataReviewsReduced()
 ```
 
 ```{python}
@@ -1217,6 +1230,36 @@ plt.show()
 ```
 
 ```{python}
+positive_reviews = dataReviewsReduced.loc[dataReviewsReduced['polarity'] == "positive" ] 
+```
+
+```{python}
+positive_reviews["cleaned"] = positive_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+positive_reviews['token']=positive_reviews['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+positive_reviews["token"]
+```
+
+```{python}
+negative_reviews = dataReviewsReduced.loc[dataReviewsReduced['polarity'] == "negative"] 
+```
+
+```{python}
+negative_reviews["cleaned"] = negative_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+negative_reviews['token'] = negative_reviews['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+word_Cloud(positive_reviews['token'])
+```
+
+```{python}
+word_Cloud(negative_reviews['token'])
+```
+
+```{python}
 def undersampling(df):
     positive, negative, _ = df.polarity.value_counts()
     df_positive = df[df.polarity == 'positive']
@@ -1240,6 +1283,22 @@ plt.show()
 ```
 
 ### Funzioni varie
+
+```{python}
+def clean_sentence(sentence,stemming=True):
+    try:
+        tokens = word_tokenize(sentence)
+    except:
+        tokens = []
+    tokens_clean = []
+    for word in tokens:
+        if word.lower() not in stop_words and word.lower() not in punctuation and not word.isnumeric() and len(word)> 1:
+            if stemming:
+                tokens_clean.append(stemmer.stem(word.lower()))
+            else:
+                tokens_clean.append(word.lower())
+    return ' '.join(tokens_clean)
+```
 
 ```{python}
 def flat_list(l):
@@ -1286,7 +1345,6 @@ new_dataReviews['token']=new_dataReviews['body'].progress_apply(word_tokenize)
 ### Stopwords
 
 ```{python}
-stop_words=nltk.corpus.stopwords.words('italian')
 stop_words
 ```
 
@@ -1297,8 +1355,6 @@ new_dataReviews["cleaned"] = new_dataReviews["token"].progress_apply(lambda sent
 ### Punctuation
 
 ```{python}
-punctuation = string.punctuation
-punctuation = punctuation + "..."+ "''" + "``" + "--"
 print(punctuation)
 ```
 
@@ -1461,14 +1517,7 @@ def train_and_evaluate_model():
 ### Use model with costum sentences
 
 ```{python}
-def clean_sentence(sentence):
-    tokens = word_tokenize(sentence)
-    tokens_clean = []
-    for word in tokens:
-        if word.lower() not in stop_words and word.lower() not in punctuation and not word.isnumeric() and len(word)> 1:
-            
-            tokens_clean.append(stemmer.stem(word))
-    return ' '.join(tokens_clean)
+
 ```
 
 ```{python}
@@ -1504,29 +1553,57 @@ model.predict(bow.transform([clean_sentence(sentence)]))
 ### LDA
 
 ```{python}
+dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+```
+
+```{python}
+dataReviews["product"].value_counts()[1:5]
+```
+
+```{python}
+#products_most_reviewed = dataReviews["product"].value_counts()[550:555]
+```
+
+```{python}
+#most_product_reviews = dataReviews.loc[dataReviews['product'].isin(products_most_reviewed.index)]
+```
+
+```{python}
+#most_product_reviews.columns
+```
+
+```{python}
+#len(most_product_reviews)
+```
+
+```{python}
+#most_product_reviews["cleaned"] = most_product_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+```
+
+```{python}
 #https://towardsdatascience.com/evaluate-topic-model-in-python-latent-dirichlet-allocation-lda-7d57484bb5d0
 ```
 
 ```{python}
 prod = "B0058BXHWE" 
-new_dataReviews_prodotto = new_dataReviews[new_dataReviews["product"]  == prod]
-```
-
-### unigrammi
-
-```{python}
-texts = new_dataReviews_prodotto['cleaned']
+#new_dataReviews_prodotto = new_dataReviews[new_dataReviews["product"]  == prod]
 ```
 
 ```{python}
-# creo il dizionario
-dictionary = corpora.Dictionary(texts) 
+#prod="B0000AP6LD"
+dataReviews_prod = dataReviews[dataReviews["product"]  == prod]
 ```
 
 ```{python}
-# Term Document Frequency -> converto testo in array
-corpus = [dictionary.doc2bow(text) for text in texts]
-#corpus
+dataReviews_prod
+```
+
+```{python}
+dataReviews_prod["cleaned"] = dataReviews_prod["body"].progress_apply(lambda x: clean_sentence(x,False))
+```
+
+```{python}
+dataReviews_prod['token']=dataReviews_prod['cleaned'].progress_apply(word_tokenize)
 ```
 
 ```{python}
@@ -1544,14 +1621,14 @@ def compute_coherence_values(corpus, dictionary, num_topics, texts):
 
 ```{python}
 def optimal_topics(dictionary, corpus, texts, max_topic):
-    count=1
+    k=1
     c_v = []
     for num_topics in range(1, max_topic):
-        print(count)
+        print("number of topics {}".format(k))
         coherence =  compute_coherence_values(corpus, dictionary, num_topics, texts)
         
         c_v.append(coherence)
-        count += 1
+        k += 1
     x = range(1, max_topic)
     plt.plot(x, c_v)
     plt.xlabel("num_topics")
@@ -1563,15 +1640,129 @@ def optimal_topics(dictionary, corpus, texts, max_topic):
 ```
 
 ```{python}
+def compute_LDA(reviews):
+    texts = reviews['token']
+    text_data = []
+    print("start bigram")
+    for sentence in texts:
+        bigram = list(nltk.bigrams(sentence))
+        tokens = []
+        for i in bigram:
+            tokens.append((''.join([w + ' ' for w in i])).strip())
+            text_data.append(tokens)
+    print("end bigram")
+    texts=text_data
+    print("start computation of dictionary")
+    dictionary = corpora.Dictionary(texts)
+    print("end computation of dictionary")
+    print("start computation of corpus")
+    corpus = [dictionary.doc2bow(text) for text in texts]
+    print("end computation of corpus")
+
+    print("start computations of optimal number of topics")
+    #num_topics = optimal_topics(dictionary=dictionary, corpus=corpus, texts=texts, max_topic=10)
+    print("end computations of optimal number of topics")
+
+    #ntopics=num_topics.index(max(num_topics))+1
+    #ldamodel = gensim.models.ldamulticore.LdaMulticore(corpus, num_topics=ntopics, id2word=dictionary)
+    ldamodel = gensim.models.LdaMulticore(corpus=corpus,
+                                           id2word=dictionary,
+                                           num_topics=1, 
+                                           random_state=1)
+    try:
+        LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
+    except:
+        LDAvis_prepared=None
+    
+    return ldamodel, corpus, dictionary, LDAvis_prepared
+```
+
+```{python}
+ris = compute_LDA(dataReviews_prod)
+```
+
+```{python}
+lda, corpus, dictionary, ldavis= ris
+```
+
+```{python}
+topics = lda.print_topics()
+x = lda.show_topics(num_topics=1, num_words=15, formatted=False)
+topics_words = [[wd[0] for wd in tp[1]] for tp in x]
+for sentence in topics_words:
+    print(sentence)
+```
+
+```{python}
+pyLDAvis.enable_notebook()
+#LDAvis_prepared = pyLDAvis.gensim.prepare(lda, corpus, dictionary)
+ldavis
+```
+
+```{python}
+pyLDAvis.enable_notebook()
+LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
+LDAvis_prepared
+```
+
+```{python}
+lda_models=[]
+corpus_reviews=[]
+dictionary_reviews=[]
+LDAvis_reviews=[]
+count=1
+for prod in tqdm(products_most_reviewed.index):
+    print("LDA for product {}".format(count))
+    product_reviews = most_product_reviews[most_product_reviews["product"]  == prod]
+    print(prod)
+    model, corpus, dictionary, ldavis = compute_LDA(product_reviews)
+    lda_models.append(model)
+    corpus_reviews.append(corpus)
+    dictionary_reviews.append(dictionary)
+    LDAvis_reviews.append(ldavis)
+    count += 1
+```
+
+```{python}
+lda_models
+```
+
+### unigrammi
+
+```{python}
+dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+```
+
+```{python}
+prod="B01H1LOZTC"
+dataReviews_prod = dataReviews[dataReviews["product"]  == prod]
+```
+
+```{python}
+dataReviews_prod["cleaned"] = dataReviews_prod["body"].progress_apply(lambda x: clean_sentence(x,False))
+dataReviews_prod['token']=dataReviews_prod['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+len(dataReviews_prod['token'])
+```
+
+```{python}
+texts=dataReviews_prod['token']
+dictionary = corpora.Dictionary(texts) 
+corpus = [dictionary.doc2bow(text) for text in texts]
+```
+
+```{python}
 num_topics = optimal_topics(dictionary=dictionary, corpus=corpus, texts=texts, max_topic=10)
 ```
 
 ```{python}
-num_topics
+ntopics=num_topics.index(max(num_topics))+1
 ```
 
 ```{python}
-ntopics=num_topics.index(max(num_topics))+1
+ntopics
 ```
 
 ```{python}
@@ -1591,7 +1782,7 @@ topics
 ```
 
 ```{python}
-x = ldamodel.show_topics(num_topics=ntopics, num_words=15, formatted=False)
+x = ldamodel.show_topics(num_topics=2, num_words=15, formatted=False)
 topics_words = [[wd[0] for wd in tp[1]] for tp in x]
 ```
 
@@ -1610,9 +1801,38 @@ LDAvis_prepared
 #### LDA su bigrammi
 
 ```{python}
+dataReviews = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+```
+
+```{python}
+#prod="B000RVYIBO" # -> ok
+#prod="B00SYM2F4U" # -> 
+#prod="B07DMJPV31" #-> ok
+#prod="B00LPHUTOO" #-> ok
+#prod="B01EWQ10D8" #->ok
+#prod="B0058BXHWE" #-> ok
+prod="B01H1LOZTC" #-> ok
+dataReviews_prod = dataReviews[dataReviews["product"]  == prod]
+```
+
+```{python}
+dataReviews_prod["cleaned"] = dataReviews_prod["body"].progress_apply(lambda x: clean_sentence(x,False))
+```
+
+```{python}
+dataReviews_prod['token']=dataReviews_prod['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+dataReviews_prod["token"] 
+```
+
+```{python}
 text_data = []
-for sentence in new_dataReviews_prodotto['cleaned']:
+for sentence in dataReviews_prod["token"] :
+    #print(sentence)
     bigram = list(nltk.bigrams(sentence))
+    #print(bigram)
     tokens = []
     for i in bigram:
         tokens.append((''.join([w + ' ' for w in i])).strip())
@@ -1640,21 +1860,21 @@ ldamodel = gensim.models.ldamulticore.LdaMulticore(corpus, num_topics=ntopics, i
 
 ```{python}
 topics = ldamodel.print_topics()
-x = ldamodel.show_topics(num_topics=ntopics, num_words=15, formatted=False)
+x = ldamodel.show_topics(num_topics=3, num_words=15, formatted=False)
 topics_words = [[wd[0] for wd in tp[1]] for tp in x]
 for sentence in topics_words:
     print(sentence)
 ```
 
 ```{python}
-ntopics
-```
-
-```{python}
 pyLDAvis.enable_notebook()
 LDAvis_prepared = pyLDAvis.gensim.prepare(ldamodel, corpus, dictionary)
 LDAvis_prepared
-# mi ha dato eccezione
+```
+
+```{python}
+pyLDAvis.save_html(LDAvis_prepared, '../data/lda_display' + prod+".html")
+
 ```
 
 ### Sentimenti recensioni neutre
