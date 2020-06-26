@@ -1,4 +1,4 @@
-# TODO: setwd and install  packages
+# install.packages(c("udpipe", "dplyr", "https://github.com/valeriobasile/sentixR/raw/master/sentix_0.0.0.9000.tar.gz"))
 library(sentix)
 
 
@@ -21,21 +21,13 @@ compute_sentix <- function(df, model) {
 model <- load.udpipe()
 
 # compute negative 
+print("compute negative")
 dataReviews_NEG = read.csv("../data/dataReviews_NEG.csv", stringsAsFactors=FALSE, sep = ',')  # read csv file 
 sentiment_NEG = compute_sentix(dataReviews_NEG, model)
 write.csv(sentiment_NEG, "../data/dataReviews_NEG_pol.csv", row.names=FALSE)
 
 # compute positive
+print("compute positive")
 dataReviews_POS = read.csv("../data/dataReviews_POS.csv", stringsAsFactors=FALSE, sep = ',')  # read csv file 
 sentiment_POS = compute_sentix(dataReviews_POS, model)
 write.csv(sentiment_POS, "../data/dataReviews_POS_pol.csv", row.names=FALSE)
-
-# compute neutral
-dataReviews_NEUT = read.csv("../data/dataReviews_NEUT.csv", stringsAsFactors=FALSE)  # read csv file 
-sentiment_NEUT = compute_sentix(dataReviews_NEUT, model)
-write.csv(sentiment_NEUT, "../data/dataReviews_NEUT_pol.csv", row.names=FALSE)
-
-# compute single_product
-dataReviews_prod = read.csv("../data/single_product.csv", stringsAsFactors=FALSE)  # read csv file 
-sentiment_prod = compute_sentix(dataReviews_prod, model)
-write.csv(sentiment_prod, "../data/single_product_pol.csv", row.names=FALSE)

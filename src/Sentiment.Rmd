@@ -54,6 +54,8 @@ from gensim.models import CoherenceModel
 import pyLDAvis.gensim
 import pickle 
 import pyLDAvis
+
+import subprocess
 ```
 
 ```{python}
@@ -62,7 +64,12 @@ punctuation = string.punctuation
 punctuation = punctuation + "..."+ "''" + "``" + "--"
 ```
 
-### Funzioni varie
+### Utils
+
+```{python}
+def convert_to_int(field):
+    return field["$numberInt"]
+```
 
 ```{python}
 def clean_sentence(sentence,stemming=True):
@@ -143,13 +150,6 @@ dataReviews.head()
 len(dataReviews)
 ```
 
-## elimino recensioni non verificate e quelli con helpful == 0
-
-```{python}
-def convert_to_int(field):
-    return field["$numberInt"]
-```
-
 ```{python}
 dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)
 ```
@@ -157,6 +157,8 @@ dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)
 ```{python}
 dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)
 ```
+
+## Removing not verified and not helpful reviews
 
 ```{python}
 def getDataReviewsReduced():
@@ -206,6 +208,97 @@ print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReview
 # empty reviews
 dataReviews[dataReviews["body"].str.len() == 0]
 ```
+
+## Sentix
+
+### Preparing dataset for sentiment analysis
+
+```{python}
+dataReviews_POS = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating > 3].sample(1000))
+dataReviews_POS['target'] = 'positive'
+dataReviews_POS['polarity'] = 'None'
+```
+
+```{python}
+dataReviews_NEG = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating < 3].sample(1000))
+dataReviews_NEG['target'] = 'negative'
+dataReviews_NEG['polarity'] = 'None'
+```
+
+```{python}
+# export csv to do sentix in R
+dataReviews_POS.to_csv('../data/dataReviews_POS.csv', index=False, sep=',')
+dataReviews_NEG.to_csv('../data/dataReviews_NEG.csv', index=False, sep=',')
+```
+
+### Execute SentimentR.R
+
+```{python}
+# EXECUTE R CODE; it could take a while
+# Rscript SentimentR.R
+subprocess.run(["Rscript", "SentimentR.R"])
+```
+
+### Read reviews polarized
+
+```{python}
+# import csv after sentix in R
+dataReviews_POS = pd.read_csv('../data/dataReviews_POS_pol.csv', sep=',')
+dataReviews_NEG = pd.read_csv('../data/dataReviews_NEG_pol.csv', sep=',')
+```
+
+```{python}
+dataReviews_POS = dataReviews_POS[dataReviews_POS['polarity'] != 'None']
+dataReviews_NEG  = dataReviews_NEG [dataReviews_NEG ['polarity'] != 'None']
+```
+
+```{python}
+# merging dataframes
+dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG], ignore_index=True)
+```
+
+```{python}
+dataReviews_pol.head()
+```
+
+```{python}
+# preparation for confusion matrix
+dataReviews_pol['polarity_lbl'] = dataReviews_pol['polarity']\
+    .apply(lambda x: 'positive' if float(x) > 0 else 'negative' )
+# preparation for correlation coefficient
+dataReviews_pol['target_binary'] = dataReviews_pol['target']\
+    .apply(lambda x: 1 if x == 'positive' else 0 )
+```
+
+```{python}
+sentix_conf_mat = confusion_matrix(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
+sentix_accuracy = accuracy_score(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
+print("Sentix confusion matrix:\n{}".format(sentix_conf_mat))
+print("Sentix accuracy:\n{}".format(sentix_accuracy))
+```
+
+```{python}
+corrcoefBinary = np.corrcoef(dataReviews_pol['target_binary'], dataReviews_pol['polarity'].astype(float))
+corrcoefRating = np.corrcoef(dataReviews_pol['rating'], dataReviews_pol['polarity'].astype(float))
+print("Correlation coefficient between positive/negative rating and polarity from sentix:\n{}".format(corrcoefBinary))
+print("Correlation coefficient 0-5 rating and polarity from sentix:\n{}".format(corrcoefRating))
+```
+
+### Compare distribution of polarity and ratings
+
+```{python}
+dataReviews_pol['polarity'].astype(float).hist()
+```
+
+```{python}
+dataReviews_pol['rating'].hist()
+```
+
+Polarity from sentix distribution is higher in the middle in opposition to rating distribution
+
+
+## Preprocessing for supervised ML approach
+
 
 #### Convert rating into polarity label (positive/neutral/negative)
 
