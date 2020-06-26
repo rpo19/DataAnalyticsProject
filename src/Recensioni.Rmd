@@ -24,6 +24,7 @@ from datetime import datetime
 from sklearn.metrics import confusion_matrix, accuracy_score
 
 import string
+import numpy as np
 from nltk import wordpunct_tokenize
 
 
@@ -111,6 +112,7 @@ len(dataReviews_pol)
 
 ```{python}
 dataReviews_pol['polarity_lbl'] = dataReviews_pol['polarity'].apply(lambda x: 'POS' if float(x) > 0 else 'NEG' )
+dataReviews_pol['target_binary'] = dataReviews_pol['target'].apply(lambda x: 1 if x == 'POS' else 0 )
 ```
 
 ```{python}
@@ -118,6 +120,14 @@ sentix_conf_mat = confusion_matrix(dataReviews_pol['target'], dataReviews_pol['p
 sentix_accuracy = accuracy_score(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
 print(sentix_conf_mat)
 print(sentix_accuracy)
+```
+
+```{python}
+np.corrcoef(dataReviews_pol['target_binary'], dataReviews_pol['polarity'].astype(float))
+```
+
+```{python}
+np.corrcoef(dataReviews_pol['rating'], dataReviews_pol['polarity'].astype(float))
 ```
 
 ### Accuracy for each target
