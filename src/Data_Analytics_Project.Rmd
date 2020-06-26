@@ -5,7 +5,7 @@ jupyter:
       extension: .Rmd
       format_name: rmarkdown
       format_version: '1.2'
-      jupytext_version: 1.5.0
+      jupytext_version: 1.4.2
   kernelspec:
     display_name: Python 3
     language: python
@@ -40,7 +40,6 @@ from collections import Counter
 # #%matplotlib notebook
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import seaborn as sns
 import numpy as np
 
 import pickle
@@ -62,7 +61,6 @@ nltk.download('stopwords')
 
 ```{python}
 data = pd.read_json('../data/products.json', lines=True)
-data
 ```
 
 ```{python}
@@ -76,7 +74,10 @@ def cleanProducts():
 
 ```{python}
 cleanProducts()
-data.head(3)
+```
+
+```{python}
+data
 ```
 
 # Network
@@ -91,7 +92,8 @@ def filterEdges(edges, weight):
 def csvCreateNodes():
     # export nodes for cytoscape
     data['title'] = data['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
-    data.to_csv("../networkData/cytoProducts.csv",columns=["_id", "title", "category", "price", "avg_rating", "reviews_number", "questions_number", 'community'], sep="\t", index=False)
+    data.to_csv("../networkData/cytoProducts.csv",columns=["_id", "title", "category", "price", "avg_rating", \
+                                   "reviews_number", "questions_number", 'community'], sep="\t", index=False)
 
 def csvCreateEdges():        
     # create complete list of edges
@@ -146,50 +148,64 @@ def csvCreateEdges():
 ## Read/Create edges
 
 ```{python}
-for i in range(1,3):
-    try:
-        edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
-        break
-    except:
-        csvCreateEdges()
-edges
+try:
+    edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
+except:
+    csvCreateEdges()
+    edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
 ```
 
 ## Create full network
 
 ```{python}
+# creating graph from edges
 full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
 ```
 
 ```{python}
+# connected components
+connected_components = list(nx.connected_components(full_graph))
+connected_components 
+```
+
+```{python}
+[len(c) for c in sorted(connected_components, key=len, reverse=True)]
+```
+
+### Giant component
+
+```{python}
+# creating subgraph of the giant component
 giant = full_graph.subgraph(list(max(nx.connected_components(full_graph), key=len)))
 ```
 
 ```{python}
+# average degree of full network
 statistics.mean(list(dict(list(nx.degree(full_graph))).values()))
 ```
 
 ```{python}
+# average clustering of full network
 nx.average_clustering(full_graph)
 ```
 
 ```{python}
+# density of full network
 nx.density(full_graph)
 ```
 
 ```{python}
+# assortativity coefficient of full network
 nx.degree_assortativity_coefficient(full_graph)
 ```
 
 ```{python}
+# degree correlation matrix of giant component
 matrix = nx.degree_mixing_matrix(giant)
 ```
 
 ```{python}
-
-```
-
-```{python}
+# degree correlation
 plt.figure(figsize=(10,10))
 plt.imshow(matrix)
 plt.gca().invert_yaxis()
@@ -197,38 +213,52 @@ plt.colorbar()
 ```
 
 ```{python}
-degree_cent = nx.degree_centrality(full_graph)
-betweenness_cent = nx.betweenness_centrality(full_graph)
-closeness_cent = nx.closeness_centrality(full_graph)
-eigen_cent = nx.eigenvector_centrality(full_graph)
-```
-
-```{python}
-centralitiesFullGraph = pd.DataFrame({'_id': list(degree_cent.keys()), 'degree': list(degree_cent.values()), \
+try:
+    centralitiesFullGraph = pd.read_csv('../networkData/centralitiesFullGraph.csv')
+except FileNotFoundError:
+    degree_cent = nx.degree_centrality(full_graph)
+    betweenness_cent = nx.betweenness_centrality(full_graph)
+    closeness_cent = nx.closeness_centrality(full_graph)
+    eigen_cent = nx.eigenvector_centrality(full_graph)
+    
+    centralitiesFullGraph = pd.DataFrame({'_id': list(degree_cent.keys()), 'degree': list(degree_cent.values()), \
               'betweenness': list(betweenness_cent.values()), \
              'closeness_cent': list(closeness_cent.values()), \
              'eigen_cent': list(eigen_cent.values())})
+    
+    centralitiesFullGraph.to_csv('../networkData/centralitiesFullGraph.csv', index=False)
 ```
 
 ```{python}
-centralitiesFullGraph.to_csv('../networkData/centrailitiesFullGraph.csv')
+# top 5 product by highest degrees
+filteredDataCentDegree = data.loc[data['_id'].isin(centralitiesFullGraph.sort_values('degree', ascending=False)\
+                                             .head(5)['_id'].values)]
 ```
 
 ```{python}
-filteredDataCent = data.loc[data['_id'].isin(centralitiesFullGraph.sort_values('degree', ascending=False).head(5)['id'].values)]
+# top 5 products by degree and create csv
+if not os.path.isfile("../networkData/degreeFullGraph.csv"):
+    pd.merge(filteredDataCentDegree[['_id', 'title']], centralitiesFullGraph, on='_id')\
+    .sort_values('degree', ascending=False).to_csv('../networkData/degreeFullGraph.csv', index=False, sep='\t')
 ```
 
 ```{python}
-pd.merge(filteredDataCent[['_id', 'title']], centralitiesFullGraph, on='_id').sort_values('degree', ascending=False).to_csv('../networkData/degreeFullGraph.csv', index=False, sep='\t')
+# top 5 product by highest degrees
+filteredDataCentCloseness = data.loc[data['_id'].isin(centralitiesFullGraph.sort_values('closeness_cent', ascending=False)\
+                                             .head(5)['_id'].values)]
 ```
 
 ```{python}
-pd.merge(filteredDataCent[['_id', 'title']], centralitiesFullGraph, on='_id').sort_values('closeness_cent', ascending=False).to_csv('../networkData/closenessFullGraph.csv', index=False, sep='\t')
+# top 5 products by closeness and create csv
+if not os.path.isfile("../networkData/closenessFullGraph.csv"):
+    pd.merge(filteredDataCentCloseness[['_id', 'title']], centralitiesFullGraph, on='_id')\
+    .sort_values('closeness_cent', ascending=False).to_csv('../networkData/closenessFullGraph.csv', index=False, sep='\t')
 ```
+
+### Top Values
 
 ```{python}
 centralitiesFullGraph.sort_values('degree', ascending=False).head(5)
-
 ```
 
 ```{python}
@@ -243,24 +273,18 @@ centralitiesFullGraph.sort_values('closeness_cent', ascending=False).head(5)
 centralitiesFullGraph.sort_values('eigen_cent', ascending=False).head(5)
 ```
 
-```{python}
-data.loc[data['_id'] == 'B0792HCFTG']
-```
-
-```{python}
-connected_components = list(nx.connected_components(full_graph))
-connected_components 
-```
-
-```{python}
-[len(c) for c in sorted(connected_components, key=len, reverse=True)]
-```
-
-## Read/Create nodes
+## Removing isolated nodes
 
 ```{python}
 data = pd.DataFrame(data.loc[data['_id'].isin(list(full_graph))])
 len(data)
+```
+
+### Write cytoscape products csv
+
+```{python}
+if not os.path.isfile("../networkData/cytoProducts.csv"):
+    csvCreateNodes()
 ```
 
 ## Filter products by categories
@@ -269,8 +293,6 @@ len(data)
 categories = data['category'].value_counts()
 print("number of categories: {}".format(len(categories)))
 print(categories)
-categories_dict = categories.to_dict()
-categories_lbl = list(categories.keys())
 ```
 
 ## Example: centralities of a category
@@ -306,16 +328,18 @@ def computeStats(data, graph, main_df):
     degrees = dict(subgraph.degree)
     degrees = dict(sorted(degrees.items(), key=operator.itemgetter(1),reverse=True))
     max_degree = list(degrees.values())[0]
-    # TODO (maybe): most positive/negative products by sentiment
-    # TODO (maybe): reviews number
+    
     return cardinality, max_degree_id, max_degree, max_degree_title
 
           
 ```
 
 ```{python}
+categories_dict = categories.to_dict()
+categories_lbl = list(categories.keys())
+
 categories_stats = pd.DataFrame(columns = ['category','cardinality','max_degree_id', 'max_degree', \
-                                           'max_degree_title', 'most_positive_id'])
+                                           'max_degree_title'])
 
 for category in categories_lbl:
     data_by_category = data.loc[data['category'] == category]['_id'].values
@@ -327,58 +351,9 @@ categories_stats
 ```
 
 ```{python}
-categories_stats.drop('most_positive_id', axis=1).head(5).to_csv('../networkData/categoriesStats.csv', index=False)
-pd.merge(categories_stats.drop('most_positive_id', axis=1).head(5), data[['_id', 'title']], left_on='max_degree_id', right_on='_id').to_csv('../networkData/categoriesStats.csv', sep='\t')
-```
-
-```{python}
-import statistics
-statistics.median(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
-#statistics.mean(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
-```
-
-```{python}
-np.seterr(all='ignore')
-#sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["avg_rating"])
-np.average(data["avg_rating"]*(data["reviews_number"]/np.average(data["reviews_number"])))
-```
-
-```{python}
-np.average(data["avg_rating"].values, weights=data["reviews_number"].values)
-#np.average(data["avg_rating"])
-```
-
-```{python}
-miniworld = data.loc[data["_id"].isin([cat["max_degree_id"] \
-                                      for _,cat in categories_stats.iterrows()])]
-np.average(miniworld["avg_rating"].values, weights = miniworld["reviews_number"].values)
-```
-
-```{python}
-np.seterr(all='ignore')
-d = data.loc[data["_id"].isin([cat["max_degree_id"] for _,cat in categories_stats.iterrows()])]["questions_number"]
-sns.distplot(d)
-sns.distplot(data["questions_number"]) 
-```
-
-```{python}
-np.seterr(all='ignore')
-sns.distplot(data.loc[data["_id"].isin([cat["max_degree_id"] \
-                                        for _,cat in categories_stats.iterrows()])]["price"])
-#sns.distplot(d, kde=False)
-sns.distplot(data["price"])
-```
-
-```{python}
-data
-```
-
-```{python}
-print(type(categories_stats))
-for _,row in categories_stats.iterrows():
-    print(row)
-    print(row["category"])
-    break
+# exporting top stats fro REPORT
+if not os.path.isfile('../networkData/categoriesStats.csv'):
+    categories_stats.head(5).to_csv('../networkData/categoriesStats.csv', index=False)
 ```
 
 ## Communities detection
@@ -390,11 +365,9 @@ for _,row in categories_stats.iterrows():
 # communities detection
 def getCommunities(graph):
     return sorted(greedy_modularity_communities(graph), key=len, reverse=True)
-    
-def getCommunitiesLouvein(network):
-    return community_louvain.best_partition(network)
 
 np.seterr(all='raise')
+# zscore to extract top category from communities
 def getCategoryStatZ(categories, threshold, top):
     try:
         z = scipy.stats.zscore(categories)
@@ -416,6 +389,7 @@ def getCategoryStatZ(categories, threshold, top):
     distrib = dict((ki, (di, zi)) for ki,di,zi in zip(distrib.keys(), distrib.values/sum_values, z))
     return max_cat, distrib
 
+# extract top categories from communities (legacy)
 def getCategoryStats(categories, threshold, top):  
     categories = categories.sort_values(ascending=False)
     tot = sum(categories)
@@ -438,9 +412,6 @@ def getCategoryStats(categories, threshold, top):
     #distrib.append({'category': 'others', 'value': others_value}, ignore_index = True)
     distrib['others'] = others_value
     return max_cat, distrib
-
-def getTitlesFromIDs(ids):
-    return data.loc[data['_id'].isin(ids)]['title']
 ```
 
 ### Communities analysis
@@ -453,6 +424,8 @@ print("# communities:", len(communities))
 ```{python}
 communities = [list(x) for x in communities]
 ```
+
+### Top Words and Entities Utils
 
 ```{python}
 stop_words = nltk.corpus.stopwords.words('italian') + nltk.corpus.stopwords.words('english')
@@ -487,7 +460,10 @@ def processTitlesSimple(titles):
                                not re.match(regex_numbers, word)])
     ret = Counter(flatten(ret))
     return dict(ret.most_common(50))
+```
 
+```{python}
+# save wordcloud image in base64
 def word_cloud_to_base64(word_counter):
     wordcloud = WordCloud(background_color='white').generate_from_frequencies(word_counter)
     filename = "/tmp/wordcloud.png"
@@ -496,6 +472,8 @@ def word_cloud_to_base64(word_counter):
         encoded = base64.b64encode(wfile.read()).decode('ascii')
     return encoded
 ```
+
+### Communities stats utils
 
 ```{python}
 def getCommunitiesStats():
@@ -526,21 +504,13 @@ def getCommunitiesStats():
     communities_stats["top_ents"] = communities_stats["community"].apply(\
                                             lambda x: processTitlesSpacy(data.loc[data['_id'].isin(x)]["title"]))
 
+    # creating wordclouds for top 10 communities by size
     communities_stats["wordclouds"] = communities_stats.iloc[0:10]["top_words"].apply(word_cloud_to_base64)
     
     return communities_stats
 ```
 
-## Average clustering coefficient 
-
-
-### Write cytoscape products csv
-
-```{python}
-#csvCreateNodes()
-```
-
-## Most common words for each community
+## Compute communities stats
 
 ```{python}
 try:
@@ -551,6 +521,7 @@ except FileNotFoundError:
 ```
 
 ```{python}
+# extracting top 10 communities for REPORT
 if not os.path.isfile("../data/communities_stats_latex.csv"):
     communities_stats_latex = communities_stats.iloc[0:10][["id", "dominant_category", "cardinality", "max_degree", \
                       "max_degree_title", "avg_clust", "top_words", "top_ents"]]
@@ -562,508 +533,13 @@ if not os.path.isfile("../data/communities_stats_latex.csv"):
     communities_stats_latex.to_latex("../data/communities_stats_latex.tex")
 ```
 
-```{python}
-np.average(communities_stats['avg_clust'].values, weights=communities_stats['cardinality'].values)
-```
+### Example: wordcloud
 
 ```{python}
 c = communities_stats.iloc[15]
 print(c)
-wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_ents"])
+wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_words"])
 plt.figure(figsize = (10, 8), facecolor = None) 
 plt.imshow(wordcloud, interpolation='bilinear')
 plt.axis("off")
 ```
-
-```{python}
-topWords = list(communities_stats["top_words"][1].keys())[0:3]
-topWords
-```
-
-```{python}
-np.seterr(all='ignore')
-sns.distplot(data.loc[data["_id"].isin([community["max_degree_id"] \
-                           for _,community in communities_stats.iterrows()])]["avg_rating"])
-#sns.distplot(d, kde=False)
-sns.distplot(data["avg_rating"])
-```
-
-```{python}
-np.seterr(all='ignore')
-sns.distplot(data.loc[data["_id"].isin([community["max_degree_id"] \
-                           for _,community in communities_stats.iterrows()])]["price"])
-#sns.distplot(d, kde=False)
-sns.distplot(data["price"])
-```
-
-## Bridges
-
-```{python}
-def getBridgesCat():
-    bridges = list(nx.bridges(full_graph))
-    
-    bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to'])
-    for edge in bridges:
-        cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
-        cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
-        if cat_from != cat_to:
-            bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
-                                              'cat_to': cat_to}, ignore_index=True)
-            
-    bridges_betweenness = nx.edge_betweenness_centrality(full_graph)
-    
-    bridges_cat = pd.DataFrame(columns=['id_from', 'id_to', 'cat_from', 'cat_to', 'edge_betweenness'])
-    for edge in bridges:
-        cat_from = data.loc[data['_id'] == edge[0]]['category'].values[0]
-        cat_to = data.loc[data['_id'] == edge[1]]['category'].values[0]
-        if cat_from != cat_to:
-            bridges_cat = bridges_cat.append({'id_from': edge[0], 'id_to': edge[1], 'cat_from': cat_from ,\
-                                              'cat_to': cat_to, 'edge_betweenness': bridges_betweenness[edge]}, ignore_index=True)
-    return bridges_cat
-```
-
-```{python}
-try:
-    bridges_cat = pd.read_csv('./bridges.csv',sep="\t")
-except FileNotFoundError:
-    bridges_cat = getBridgesCat()
-    bridges_cat.to_csv('./bridges.csv',sep="\t", index=False)
-```
-
-## ! read csv !
-
-```{python}
-cat_in_bridges = bridges_cat[['cat_from','cat_to']].drop_duplicates().values
-bridges_stats = pd.DataFrame()
-for cat in cat_in_bridges:
-    filtered_bridges = bridges_cat.loc[(bridges_cat['cat_from']==cat[0]) & (bridges_cat['cat_to']==cat[1])]
-    bridges_stats = bridges_stats.append(filtered_bridges.loc[filtered_bridges['edge_betweenness'] == max(filtered_bridges['edge_betweenness'])].head(1), ignore_index=True)
-bridges_stats
-
-```
-
-## Create a network for each relation (OLD)
-
-```{python}
-# network for bought_together
-edges_bt = filterEdges(all_edges, 3)
-G_bt = nx.from_pandas_edgelist(edges_bt, source='from', target='to')
-print("### bought_together ###")
-print("# nodes:", len(nodes))
-print("# edges:", len(edges_bt))
-print()
-# network for also_bought
-edges_ab = filterEdges(all_edges, 2)
-G_ab = nx.from_pandas_edgelist(edges_ab, source='from', target='to')
-print("### also_bought ###")
-print("# nodes:", len(nodes))
-print("# edges:", len(edges_ab))
-print()
-
-# network for also_viewed
-edges_av = filterEdges(all_edges, 1)
-G_av = nx.from_pandas_edgelist(edges_av, source='from', target='to')
-print("### also_viewed ###")
-print("# nodes:", len(nodes))
-print("# edges:", len(edges_av))
-print()
-
-
-```
-
-## Communities
-
-
-### Single relations (OLD)
-
-```{python}
-communities_bt = getCommunities(G_bt)
-print("# communities bt:", len(communities_bt))
-
-communities_ab = getCommunities(G_ab)
-print("# communities ab:", len(communities_ab))
-
-communities_av = getCommunities(G_av)
-print("# communities av:", len(communities_av))
-
-```
-
-```{python}
-# get communities with louvein
-partition = getCommunitiesLouvein(G_ab)
-```
-
-```{python}
-print(len(partition))
-partition_df = pd.DataFrame(partition.items(), columns=['_id', 'community'])
-
-grouped_df = partition_df.groupby('community').count()
-print(len(grouped_df))
-grouped_df.sort_values('_id').loc[grouped_df['_id'] >= 5]
-```
-
-#### bt examples
-
-```{python}
-# products in a community
-
-communities_bt_list =[list(x) for x in communities_bt]
-community_bt_x = communities_bt_list[3]
-community_bt_x
-print(data.loc[data['_id'].isin(community_bt_x)].groupby('category').count())
-
-```
-
-```{python}
-data.loc[data['_id'].isin(community_bt_x)]
-```
-
-#### also viewed examples
-
-```{python}
-communities_av_list =[list(x) for x in communities_av]
-
-community_av_1 = communities_av_list[4]
-community_av_1
-print(data.loc[data['_id'].isin(community_av_1)].groupby('category').count())
-data.loc[data['_id'].isin(community_av_1)]
-```
-
-#### predominant category for each community
-
-```{python}
-communities_bt = [list(x) for x in getCommunities(G_bt)]
-
-```
-
-```{python}
-#print(communities_bt)
-communities_bt_df = []
-#pd.DataFrame(columns=["community", "category"])
-for community in communities_bt:
-    categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
-    category = getDominantCategory(categories, 0.75)
-    communities_bt_df.append({"community": community,"category": category})
-communities_bt_df = pd.DataFrame(communities_bt_df, columns=['community', 'category'])
-
-```
-
-```{python}
-communities_bt_df.loc[communities_bt_df['category'] == 'videogames']
-```
-
-```{python}
-print(getTitlesFromIDs(communities_bt_df.iloc[4]['community']).to_string())
-print("___________")
-print(getTitlesFromIDs(communities_bt_df.iloc[10]['community']).to_string())
-print("___________")
-print(getTitlesFromIDs(communities_bt_df.iloc[33]['community']).to_string())
-
-```
-
-### Most common words (title) for each community
-Important where category==None
-
-```{python}
-
-```
-
-## Plot
-
-```{python}
-def set_node_community(G, communities):
-        '''Add community to node attributes'''
-        for c, v_c in enumerate(communities):
-            for v in v_c:
-                # Add 1 to save 0 for external edges
-                G.nodes[v]['community'] = c + 1
-                
-def get_color(i, r_off=1, g_off=1, b_off=1):
-        '''Assign a color to a vertex.'''
-        r0, g0, b0 = 0, 0, 0
-        n = 16
-        low, high = 0.1, 0.9
-        span = high - low
-        r = low + span * (((i + r_off) * 3) % n) / (n - 1)
-        g = low + span * (((i + g_off) * 5) % n) / (n - 1)
-        b = low + span * (((i + b_off) * 7) % n) / (n - 1)
-        return (r, g, b)
-
-def getNodeColors(graph):
-    return [get_color(graph.nodes[v]['community']) for v in graph.nodes]
-
-def readPos(fileName):
-    in_file = open(fileName,"rb")
-    text = in_file.read()
-    in_file.close()
-    return pickle.loads(text)
-
-def writePos(pos, fileName):
-    out_file = open(fileName,"wb")
-    out_file.write(pickle.dumps(pos))
-    out_file.close()
-
-def plotNetworkWithExistingPos(graph, fileName, node_size=300, figsize=(100,100)):
-    pos = readPos(fileName)
-    plt.figure(figsize=figsize)
-    node_color = getNodeColors(graph)
-    nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color, \
-                     edge_color="black", node_size=node_size)
-
-def plotNetworkNew(graph, fileName):
-    pos = nx.spring_layout(graph, k=0.1)
-    writePos(pos, fileName)
-    plt.figure(figsize=(100,100))
-    node_color = getNodeColors(graph)
-    # vedere se aggiungere nodelist=nodes[category==...] per fare solo categories piu importanti
-    nx.draw_networkx(graph, pos=pos, with_labels = False, node_color=node_color)
-```
-
-```{python}
-set_node_community(G_bt, communities_bt)
-plotNetworkWithExistingPos(G_bt, 'pos.txt', figsize=(50,50))
-```
-
-```{python}
-def filterone(G, clist):
-    res = [v for v in G_bt.nodes if G_bt.nodes[v]["community"] in clist]
-    return res
-```
-
-```{python}
-filtered = filterone(G_bt, [1,2,3])
-len(filtered)
-```
-
-```{python}
-G_filtered=nx.Graph()
-```
-
-```{python}
-G_filtered.add_nodes_from(filtered)
-G_filtered.nodes
-```
-
-```{python}
-plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1])), 'pos.txt', node_size=80, figsize=(4,4))
-```
-
-```{python}
-plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2])), 'pos.txt', node_size=80, figsize=(4,4))
-```
-
-```{python}
-plotNetworkWithExistingPos(G_bt.subgraph(filterone(G_bt, [1,2,3])), 'pos.txt', node_size=80, figsize=(10,10))
-```
-
-```{python}
-# plot partitions generated with louvein
-
-# color the nodes according to their partition
-#plt.figure(figsize=(50,50))
-#cmap = cm.get_cmap('viridis', max(partition.values()) + 1)
-#nx.draw_networkx_nodes(G_bt, pos, partition.keys(), node_size=40,
-                       cmap=cmap, node_color=list(partition.values()))
-#nx.draw_networkx_edges(G_bt, pos, alpha=0.5)
-#plt.show()
-```
-
-```{python}
-# plotNetworkWithExistingPos(G_bt.subgraph(partition), 'pos.txt', node_size=80, figsize=(50,50))
-```
-
-## webApp functions
-
-```{python}
-data = pd.read_csv('../networkData/cytoProducts.csv', sep='\t')
-data
-```
-
-```{python}
-data = pd.read_json('../data/reviews.json', lines=True)
-data
-```
-
-```{python}
-cleanReviews(data)
-```
-
-```{python}
-data['rating']
-```
-
-```{python}
-plt.figure(figsize=(18,6))
-data['rating'].plot(kind='hist')
-```
-
-```{python}
-verified = data.loc[data['verified'] == True]
-```
-
-```{python}
-helpful = verified.loc[verified['helpful'] > 0]
-```
-
-## Utils
-
-```{python}
-def generateProductsSampleCsv():
-    df = pd.DataFrame(columns=data.columns)
-    for index in range(1,11):
-        df.loc[index] = data.iloc[randint(1,10000)]
-    df.to_csv('../dataApp/sampleProducts.csv', columns=["_id", "title", "category", "price", "avg_rating", "pictures", "questions_number", "reviews_number"], sep='\t', index=False)
-
-def generateCsvRatings():
-    dic = {}
-    for index in range(0,6):
-        if index == 0:
-            dic[index] = len(data.loc[data['avg_rating'] == index])
-        elif index < 5:
-            dic[index] = len(data.loc[(data['avg_rating'] > index) & (data['avg_rating'] < index+1)])
-        else:
-            dic[index] = len(data.loc[data['avg_rating'] == index])
-    pd.DataFrame(list(dic.items()), columns=['rating', 'value']).to_csv('../dataApp/ratingsDistrib.csv', sep='\t', index=False)
-
-def generateReviewsSampleCsv():
-    data.head(10).to_csv('../dataApp/sampleReviews.csv', index=False, sep='\t')
-
-def generateReviewsSampleTextCsv():
-    data.loc[data['product'] == 'B00ESBHG3Q'].to_csv('../dataApp/sampleReviewsText.csv', index=False, sep='\t')
-
-def generateRatingDistribCsv():
-    distrib = helpful['rating'].value_counts()
-    pd.DataFrame({'rating': distrib.keys(), 'value': distrib.values}).to_csv('../dataApp/ratingDistribFilteredReviews.csv', sep='\t', index=False)
-    
-def cleanReviews(data):
-    data['rating'] = data['rating'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
-    data['helpful'] = data['helpful'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
-    
-```
-
-```{python}
-generateCsvRatings()
-```
-
-```{python}
-generateProductsSampleCsv()
-```
-
-```{python}
-generateReviewsSampleCsv()
-```
-
-```{python}
-generateReviewsSampleTextCsv()
-```
-
-```{python}
-generateRatingDistribCsv()
-```
-
-```{python}
-nx.number_connected_components(full_graph)
-```
-
-```{python}
-def readGraph(network, i):
-    with open ('../networkData/' + network, encoding='cp850') as prova:
-        json_prova = json.load(prova)
-        nodes = json_prova['elements']['nodes']
-        edges = json_prova['elements']['edges']
-    addFieldsToNodes(nodes, i)
-    net = addEdges(nodes, edges)    
-    return net
-```
-
-```{python}
-def writeGraph(network, fileName):
-    with open('../networkData/'+ fileName, 'w') as outfile:
-        json.dump(network, outfile)
-```
-
-```{python}
-def addEdges(nodes, edges):
-        return nodes + edges
-```
-
-```{python}
-def addFieldsToNodes(nodes, i):
-    for element in nodes:
-        elementId = element['data']['name']
-        category = element['data']['category']
-        community = element['data']['community']
-        element['data']['catColor'] = categoriesDf.loc[categoriesDf['category'] == category]['color'].values[0]
-        if community > 10:
-            element['data']['commColor'] = '#999999'
-        else:
-            element['data']['commColor'] = communitiesDf.loc[communitiesDf['community'] == community]['color'].values[0]
-        element['data']['nodeSize'] = int(element['data']['Degree']) * 10
-        if elementId == communities_stats.iloc[i]['max_degree_id']:
-            element['data']['centralNode'] = 1
-        else:
-            element['data']['centralNode'] = 0
-```
-
-```{python}
-categoriesDf = pd.DataFrame({'category':categories.keys(), 'color': None})
-random.seed(10)
-for index, row in categoriesDf.iterrows():
-    row['color'] = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-categoriesDf
-```
-
-```{python}
-comm = communities_stats.head(10)
-communitiesDf = pd.DataFrame({'community':comm['id'].values, 'color': None})
-random.seed(50)
-for index, row in communitiesDf.iterrows():
-    row['color'] = "#{:06x}".format(random.randint(0, 0xFFFFFF))
-communitiesDf
-```
-
-```{python}
-net = readGraph('giantComponent.cyjs', 0)
-```
-
-```{python}
-writeGraph(net, 'giantComponent.cyjs')
-```
-
-```{python}
-for i in range(0,11):
-    net = readGraph('community' + str(i+1) +'.cyjs', i)
-    writeGraph(net, 'community'+str(i+1)+'.cyjs')
-```
-
-```{python}
-# !pip install dandelion-eu
-```
-
-```{python}
-pip install spacy-dbpedia-spotlight
-```
-
-```{python}
-str = " ".join([x for (x,v) in communities_stats.iloc[0]["top_ents"].items()][0:3])
-str
-```
-
-```{python}
-communities_stats.iloc[0]
-```
-
-```{python}
-from dandelion import DataTXT
-dandelion_token = ''
-datatxt = DataTXT(app_id="08244596bdc443adad8240b9064f5f86", app_key="08244596bdc443adad8240b9064f5f86")
-response = datatxt.nex(str)
-for annotation in response.annotations:
-    print(annotation)
-```
-
-```{python}
-response
-
-```
-
