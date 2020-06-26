@@ -277,19 +277,13 @@ def callback(clicks, input_value):
             return html.Div(children=[
                     html.Div(predict_value, style={'marginRight': '20px'}),
                     html.I('sentiment_dissatisfied', className='material-icons-round', style={'fontSize': '35px', 'color': 'red'})
-                ], className='flex-row')
+                ], className='flex-row flex-center predicted-sent')
         else:
             return html.Div(children=[
                     html.Div(predict_value, style={'marginRight': '20px'}),
                     html.I('sentiment_satisfied', className='material-icons-round', style={'fontSize': '35px', 'color': 'green'})
-                ], className='flex-row flex-center')
+                ], className='flex-row flex-center predicted-sent')
 
-
-# @app.callback(Output('prod-series-output', 'children'),
-#               [Input('dropTimeSeries', 'value')])
-# def render_content(value):
-#     if value is not None:
-#         return html.Div('Review Number: ' + str(dfSampleProducts.iloc[int(value)]['reviews_number']), className='subtitle zan-box-shadow', style={'marginTop': '24px', 'padding': '10px', 'borderRadius': '6px'})
 
 @app.callback(Output('prod-series-output', 'children'),
               [Input('dropTimeSeries', 'value')])
