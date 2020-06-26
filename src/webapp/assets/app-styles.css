@@ -336,7 +336,19 @@ button {
     background: white;
 }
 
+.popup-center {
+    position: absolute;
+    bottom: 90%;
+    left: 90%;
+    opacity: 0;
+    visibility: hidden;
+    padding: 10%;
+    border-radius: 6px;
+    transition: all 150ms ease-out;
+}
+
 .central-node-button {
+    position: relative;
     outline: none;
     border: none;
     background: white;
@@ -350,6 +362,13 @@ button {
 
 .central-node-button:hover > i {
     color: #C92F95;
+}
+
+.central-node-button:hover > .popup-center {
+    visibility: visible;
+    bottom: 110%;
+    left: 110%;
+    opacity: 1;
 }
 
 .network-menu-container {

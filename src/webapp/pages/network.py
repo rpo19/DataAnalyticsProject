@@ -64,7 +64,8 @@ network_layout = [
     ], className="network-menu-container zan-box-shadow flex-column"),
     html.Div(children=[
         html.Button(id='show-central', n_clicks=0, children=[
-                        html.I('my_location', className='material-icons-round')
+                        html.I('my_location', className='material-icons-round'),
+                        html.Div('Show central node', className='popup-center zan-box-shadow')
                     ], className='central-node-button zan-box-shadow disp-flex flex-center justify-center'),
         html.Div(children=[
             html.Div(children=[
