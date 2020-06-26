@@ -21,6 +21,7 @@ import itertools
 from collections import Counter
 import nltk
 from datetime import datetime
+from sklearn.metrics import confusion_matrix, accuracy_score
 
 import string
 from nltk import wordpunct_tokenize
@@ -88,19 +89,35 @@ dataReviews_NEUT.to_csv('../data/dataReviews_NEUT.csv', index=False, sep=',')
 
 ```{python}
 # import csv after sentix in R
-dataReviews_POS = pd.read_csv('../data/dataReviews_POS_pol.csv', sep=',').mask(dataReviews_POS.eq('None')).dropna()
-dataReviews_NEG = pd.read_csv('../data/dataReviews_NEG_pol.csv', sep=',').mask(dataReviews_NEG.eq('None')).dropna()
-dataReviews_NEUT = pd.read_csv('../data/dataReviews_NEUT_pol.csv', sep=',').mask(dataReviews_NEUT.eq('None')).dropna()
+dataReviews_POS = pd.read_csv('../data/dataReviews_POS_pol.csv', sep=',')#.mask(dataReviews_POS.eq('None')).dropna()
+dataReviews_NEG = pd.read_csv('../data/dataReviews_NEG_pol.csv', sep=',')#.mask(dataReviews_NEG.eq('None')).dropna()
+#dataReviews_NEUT = pd.read_csv('../data/dataReviews_NEUT_pol.csv', sep=',').mask(dataReviews_NEUT.eq('None')).dropna()
+```
+
+```{python}
+dataReviews_POS = dataReviews_POS[dataReviews_POS['polarity'] != 'None']
+dataReviews_NEG  = dataReviews_NEG [dataReviews_NEG ['polarity'] != 'None']
 ```
 
 ```{python}
 # merging dataframes
-dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG,dataReviews_NEUT], ignore_index=True)
-# dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG], ignore_index=True)
+# dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG,dataReviews_NEUT], ignore_index=True)
+dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG], ignore_index=True)
 ```
 
 ```{python}
 len(dataReviews_pol)
+```
+
+```{python}
+dataReviews_pol['polarity_lbl'] = dataReviews_pol['polarity'].apply(lambda x: 'POS' if float(x) > 0 else 'NEG' )
+```
+
+```{python}
+sentix_conf_mat = confusion_matrix(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
+sentix_accuracy = accuracy_score(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
+print(sentix_conf_mat)
+print(sentix_accuracy)
 ```
 
 ### Accuracy for each target
