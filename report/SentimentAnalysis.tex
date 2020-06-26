@@ -30,9 +30,18 @@ Gli scarsi risultati hanno portato a scartare l'approccio e a prenderne in consi
 %TODO: dire che si considera il binario, GABRI the machine learner se ha in mente premesse da fare le facci lei
 %TODO: dire modello utilizzato e con che parametri eventualmente
 
-Anche in questo caso, avendo a disposizione un numero di recensioni molto elevato, si è deciso di utilizzare il sottoinsieme filtrato su quelle che sono sia verificate che considerate utili da almeno un utente in quanto considerate più affidabili per addestrare il modello. Per bilanciare il numero di recensioni positive molto più alto di quelle negative da dare in input al modello è stato fatto undersampling ed è stato ottenuto un insieme di XXX esempi di training diviso in due tra le classi. \\
-Il modello è stato addestrato tramite una 10-fold cross-validation ed ha ottenuto un'accuratezza pari a XXX, con la matrice di confusione riportata in tabella \ref{tab:matriceConfusioneModello}. \\\\
-%TODO: tab:matriceConfusioneModello
+Anche in questo caso, avendo a disposizione un numero di recensioni molto elevato, si è deciso di utilizzare il sottoinsieme filtrato su quelle che sono sia verificate che considerate utili da almeno un utente in quanto considerate più affidabili per addestrare il modello. Per bilanciare il numero di recensioni positive molto più alto di quelle negative da dare in input al modello è stato fatto undersampling ed è stato ottenuto un insieme di 321642 esempi divisi in due tra le classi. Questi esempi sono stati divisi con proporzione 80\% train e ...AAAAAAAAAAAAA... \\
+Il modello è stato addestrato tramite una 10-fold cross-validation ed ha ottenuto un'accuratezza pari a 0.90, con la matrice di confusione riportata in tabella \ref{tab:matriceConfusioneModello}. \\\\
+\begin{table}[]
+    \begin{tabular}{l|l|l|}
+    \cline{2-3}
+     & \textbf{NEG} & \textbf{POS} \\ \hline
+    \multicolumn{1}{|l|}{\textbf{NEG}} & 28866 & 3253 \\ \hline
+    \multicolumn{1}{|l|}{\textbf{POS}} & 2808 & 29402 \\ \hline
+    \end{tabular}
+    \caption{Matrice di confusione classificazione recensioni con modello di regressione logistica}
+    \label{tab:matriceConfusioneModello}
+\end{table}
 %AAAAAAAAAAAAAAAA: da qui in poi i risultati che mostriamo dovremmo tirarli fuori dalle recensioni non filtrate
 
 Con il modello ottenuto è stato poi possibile calcolare il sentimento delle recensioni su alcuni prodotti d'esempio per osservarne l'andamento nel tempo rispetto al trend delle stelle. In questo caso, per avere un insieme di valori più ampio e tracciare un grafico migliore, sono state considerate anche le recensioni non verificate e non marcate come utili. Dopo aver effettuato la previsione del sentimento, è stata calcolata la media dei valori raggruppati per mese ed è stata tracciata la curva nel tempo. Come si può vedere in figura \ref{fig:andamentoSentimentoProdotto}, la curva del sentimento e quella del numero medio di stelle\footnote{i valori medi del numero di stelle sono stati portati in una scala compresa tra 0 e 1} seguono lo stesso andamento. Inoltre, è stato calcolato un valore per rappresentare il trend della curva del sentimento, il quale corrisponde al coefficiente angolare della retta che meglio approssima la curva. Dato un prodotto, è quindi possibile verificare se il sentimento delle recensioni sia in crescita o meno. \\\\
