@@ -242,7 +242,7 @@ def computeStats(data, graph, main_df):
     degree_centrality = nx.degree_centrality(subgraph)
     degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
     max_degree_id = list(degree_centrality.keys())[0]
-    max_degree_title = main_df.loc[main_df["_id"] == max_degree_id]["title"]
+    max_degree_title = main_df.loc[main_df["_id"] == max_degree_id]["title"].values[0]
     # degree
     degrees = dict(subgraph.degree)
     degrees = dict(sorted(degrees.items(), key=operator.itemgetter(1),reverse=True))
@@ -488,9 +488,14 @@ except FileNotFoundError:
 
 ```{python}
 if not os.path.isfile("../data/communities_stats_latex.csv"):
-    communities_stats[["id", "dominant_category", "cardinality", "max_degree", \
-                      "max_degree_title", "avg_clust", "top_words", "top_ents"]]\
-    .to_csv("../data/communities_stats_latex.csv", sep="\t", index=False)
+    communities_stats_latex = communities_stats.iloc[0:10][["id", "dominant_category", "cardinality", "max_degree", \
+                      "max_degree_title", "avg_clust", "top_words", "top_ents"]]
+    communities_stats_latex["top_words"] = communities_stats_latex["top_words"].apply(lambda x: ", ".join(list(x.keys())[0:3]))
+    communities_stats_latex["top_ents"] = communities_stats_latex["top_ents"].apply(lambda x: ", ".join(list(x.keys())[0:3]))
+    communities_stats_latex["max_degree_title"] = communities_stats_latex["max_degree_title"].apply(lambda x: x[0:20])
+
+    communities_stats_latex.to_csv("../data/communities_stats_latex.csv", sep="\t", index=False)
+    communities_stats_latex.to_latex("../data/communities_stats_latex.tex")
 ```
 
 ```{python}
