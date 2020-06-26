@@ -1,0 +1,200 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.2
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+from random import randint
+import networkx as nx
+```
+
+
+## WebApp functions
+
+
+needed to create csv for the demo  
+needs datanalaticsproject.rmd to work
+
+```{python}
+#dataProducts = pd.read_csv('../networkData/cytoProducts.csv', sep='\t')
+#dataProducts
+```
+
+```{python}
+chunks = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
+
+chunk_list = []  # append each chunk df here 
+
+# Each chunk is in df format
+for chunk in chunks:
+    chunk_list.append(chunk)
+
+data = pd.concat(chunk_list)
+```
+
+```{python}
+data
+```
+
+## Utils
+
+```{python}
+def generateProductsSampleCsv():
+    df = pd.DataFrame(columns=data.columns)
+    for index in range(1,11):
+        df.loc[index] = data.iloc[randint(1,10000)]
+    df.to_csv('../dataApp/sampleProducts.csv', columns=["_id", "title", "category", "price", "avg_rating", "pictures", "questions_number", "reviews_number"], sep='\t', index=False)
+
+def generateCsvRatings():
+    dic = {}
+    for index in range(0,6):
+        if index == 0:
+            dic[index] = len(data.loc[data['avg_rating'] == index])
+        elif index < 5:
+            dic[index] = len(data.loc[(data['avg_rating'] > index) & (data['avg_rating'] < index+1)])
+        else:
+            dic[index] = len(data.loc[data['avg_rating'] == index])
+    pd.DataFrame(list(dic.items()), columns=['rating', 'value']).to_csv('../dataApp/ratingsDistrib.csv', sep='\t', index=False)
+
+def generateReviewsSampleCsv():
+    data.head(10).to_csv('../dataApp/sampleReviews.csv', index=False, sep='\t')
+
+def generateReviewsSampleTextCsv():
+    data.loc[data['product'] == 'B00ESBHG3Q'].to_csv('../dataApp/sampleReviewsText.csv', index=False, sep='\t')
+
+def generateRatingDistribCsv():
+    distrib = helpful['rating'].value_counts()
+    pd.DataFrame({'rating': distrib.keys(), 'value': distrib.values}).to_csv('../dataApp/ratingDistribFilteredReviews.csv', sep='\t', index=False)
+    
+def cleanReviews(data):
+    data['rating'] = data['rating'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+    data['helpful'] = data['helpful'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+    
+```
+
+```{python}
+cleanReviews(data)
+```
+
+```{python}
+data['rating']
+```
+
+```{python}
+plt.figure(figsize=(18,6))
+data['rating'].plot(kind='hist')
+```
+
+```{python}
+verified = data.loc[data['verified'] == True]
+```
+
+```{python}
+helpful = verified.loc[verified['helpful'] > 0]
+```
+
+```{python}
+generateCsvRatings()
+```
+
+```{python}
+generateProductsSampleCsv()
+```
+
+```{python}
+generateReviewsSampleCsv()
+```
+
+```{python}
+generateReviewsSampleTextCsv()
+```
+
+```{python}
+generateRatingDistribCsv()
+```
+
+```{python}
+#nx.number_connected_components(full_graph)
+```
+
+```{python}
+def readGraph(network, i):
+    with open ('../networkData/' + network, encoding='cp850') as prova:
+        json_prova = json.load(prova)
+        nodes = json_prova['elements']['nodes']
+        edges = json_prova['elements']['edges']
+    addFieldsToNodes(nodes, i)
+    net = addEdges(nodes, edges)    
+    return net
+```
+
+```{python}
+def writeGraph(network, fileName):
+    with open('../networkData/'+ fileName, 'w') as outfile:
+        json.dump(network, outfile)
+```
+
+```{python}
+def addEdges(nodes, edges):
+        return nodes + edges
+```
+
+```{python}
+def addFieldsToNodes(nodes, i):
+    for element in nodes:
+        elementId = element['data']['name']
+        category = element['data']['category']
+        community = element['data']['community']
+        element['data']['catColor'] = categoriesDf.loc[categoriesDf['category'] == category]['color'].values[0]
+        if community > 10:
+            element['data']['commColor'] = '#999999'
+        else:
+            element['data']['commColor'] = communitiesDf.loc[communitiesDf['community'] == community]['color'].values[0]
+        element['data']['nodeSize'] = int(element['data']['Degree']) * 10
+        if elementId == communities_stats.iloc[i]['max_degree_id']:
+            element['data']['centralNode'] = 1
+        else:
+            element['data']['centralNode'] = 0
+```
+
+```{python}
+categoriesDf = pd.DataFrame({'category':categories.keys(), 'color': None})
+random.seed(10)
+for index, row in categoriesDf.iterrows():
+    row['color'] = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+categoriesDf
+```
+
+```{python}
+comm = communities_stats.head(10)
+communitiesDf = pd.DataFrame({'community':comm['id'].values, 'color': None})
+random.seed(50)
+for index, row in communitiesDf.iterrows():
+    row['color'] = "#{:06x}".format(random.randint(0, 0xFFFFFF))
+communitiesDf
+```
+
+```{python}
+net = readGraph('giantComponent.cyjs', 0)
+```
+
+```{python}
+writeGraph(net, 'giantComponent.cyjs')
+```
+
+```{python}
+for i in range(0,11):
+    net = readGraph('community' + str(i+1) +'.cyjs', i)
+    writeGraph(net, 'community'+str(i+1)+'.cyjs')
+```
