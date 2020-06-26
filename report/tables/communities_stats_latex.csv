@@ -1,0 +1,11 @@
+id	dominant_category	cardinality	max_degree	max_degree_title	avg_clust	top_words	top_ents
+1	videogames	520	36	FIFA 19 - PlayStation	0.19467711147575406	playstation, nintendo, switch	PlayStation 4, Nintendo Switch, Regno Unito
+2	music	450	21	Fleurs .(Vinile Ross...	0.3660551793885128	vinile, esclusiva, amazon.it	Esclusiva Amazon.it, Notti Brave, Playlist
+3	appliances	383	22	Wpro SKS101 Kit di a...	0.22555316916398158	lavatrice, libera, installazione	Litri, Ciarra, Argento
+4	electronics	363	26	RFID Blocking Porta... 	0.12357040266131175	led, luce, impermeabile	iPhone, Confezione, Lampada Solare
+5	lighting	313	38	Echo Dot (3 generazione)	0.27407475205870846	led, smart, wifi	Google Home, Alexa, Amazon Alexa
+6	tools	313	37	Gfone 8 Set di strum...	0.1864172628831528	led, lampada, batteria	Batteria, Tablet, Lampada
+7	musical-instruments	274	29	Cordes pour guitare... 	0.2526460929856645	chitarra, corde, acustica	Corde, Chitarra, Basso
+8	baby	240	21	jane, Mutande post-p...	0.27871225244483766	chicco, pezzi, bambini	Confezione, Grigio, 2 Pezzi
+9	luggage	240	14	Travel Buddy, Lucche...	0.15322117697117696	viaggio, bagaglio, mano	Bagaglio, Pollici, Ryanair
+10	jewelry	239	17	Fablcrew - Bracciale...	0.2508980313312089	argento, regalo, braccialetto	Sterling 925, Orecchini, San Valentino
