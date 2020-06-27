@@ -368,7 +368,7 @@ def getCommunities(graph):
 
 np.seterr(all='raise')
 # zscore to extract top category from communities
-def getCategoryStatZ(categories, threshold, top):
+def getCategoryStatZ(categories, threshold, thresholdP, top):
     try:
         z = scipy.stats.zscore(categories)
     except FloatingPointError:
@@ -382,11 +382,19 @@ def getCategoryStatZ(categories, threshold, top):
             distrib = dict(zip(categories.head(top).keys(), zip(categories.values/sum(categories), np.zeros(len(categories)))))
         return max_cat,distrib
 
-    max_cat = categories.keys()[z.argmax()] if z.max() > threshold else None
+    max_cat = categories.keys()[z.argmax()] if z.max() >= threshold else None
+
     distrib = categories[z.argsort()[::-1]].head(top)
     sum_values = sum(distrib.values)
     z[::-1].sort()
     distrib = dict((ki, (di, zi)) for ki,di,zi in zip(distrib.keys(), distrib.values/sum_values, z))
+
+    first_cat = list(distrib.items())[0]
+    if max_cat is None and first_cat[1][0] >= thresholdP:
+    # zscore was not able to find a dominant category (e.g only 2 categories)
+    # check if category percentage higher than thresholdP
+        max_cat = first_cat[0]
+
     return max_cat, distrib
 
 # extract top categories from communities (legacy)
@@ -483,7 +491,7 @@ def getCommunitiesStats():
         # dominant category
         categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
         #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
-        dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 3)
+        dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 0.75, 3)
         # compute stats
         cardinality, max_degree_id, max_degree, max_degree_title = computeStats(community, full_graph, data)
         avg_clust = nx.average_clustering(full_graph.subgraph(community))
