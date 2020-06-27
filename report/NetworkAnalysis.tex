@@ -113,10 +113,10 @@ Come per le categorie, i risultati mostrati sono quelli relativi alle communitie
 In tabella \ref{tab:communitiesStats} sono disponibili le statistche estratte per le prime 10 communities. \\
 Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, per ogni community è stato calcolato il coefficiente di clustering medio per determinare il livello di coesione.  Inoltre ci si è posti l'obiettivo di identificare la sfera di interesse di ogni gruppo di prodotti e di darne una sorta di etichetta che possa riassumerne il contenuto. A tale scopo sono stati calcolati i seguenti campi:
 \begin{itemize}
-    \item \textbf{dominant category}: categoria dominante della community; estratta osservando con quale frequenza le categorie comparivano tra i prodotti della community tenendo in considerazione anche z-score delle frequenze.
-    \item \textbf{categories distribution}: distribuzione di frequenze relative delle categorie principali presenti nella community.
-    \item \textbf{top words}: parole più frequenti presenti nei titoli dei prodotti di una community; i titoli sono stati tokenizzati, ogni parola è stata resa lowercase e filtrata eliminando stop_words, punteggiatura e parole poco rappresentative della community come colori e numeri.
-    \item \textbf{top entities}: entità più frequenti estratte dai titoli dei prodotti di una community utilizzando l'entity recognition di spacy e in seguito filtrate in modo da eliminare quelle poco rilevanti come i colori.
+    \item \textbf{Dominant Category}: categoria dominante della community; estratta osservando con quale frequenza le categorie compaiono tra i prodotti della community tenendo in considerazione anche lo z-score delle frequenze.
+    \item \textbf{Categories Distribution}: distribuzione di frequenze relative delle categorie principali presenti nella community.
+    \item \textbf{Top Words}: parole più frequenti presenti nei titoli dei prodotti di una community; i titoli sono stati tokenizzati, ogni parola è stata resa lowercase e filtrata eliminando \textit{stop-words}, punteggiatura e parole poco rappresentative della community come colori e numeri.
+    \item \textbf{Top Entities}: entità più frequenti estratte dai titoli dei prodotti di una community utilizzando l'entity recognition di \textit{Spacy} e in seguito filtrate in modo da eliminare quelle poco rilevanti come i colori.
 \end{itemize}
 
 \begin{small}
