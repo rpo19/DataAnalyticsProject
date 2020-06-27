@@ -30,7 +30,7 @@ In figura \ref{fig:distribuzioneGradi} è mostrata la distribuzione dei gradi. C
     \caption{Distribuzione dei gradi nella rete completa}\label{fig:distribuzioneGradi}
 \end{figure}
 
-Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di -0.0194 che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi  con grado più alto, seppur in modo non nettamente marcato, tendano a connettersi a nodi con grado basso. A conferma di ciò, in figura \ref{fig:hubs} si può osservare come i nodi di grado più alto\footnote{sono stati considerati come nodi gli hubs di grado almeno pari a 20} non tendano a connettersi tra loro. È possibile quindi supporre che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta e in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti con grado basso. 
+Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di -0.0194 che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi  con grado più alto, seppur in modo non nettamente marcato, tendano a connettersi a nodi con grado basso. A conferma di ciò, in figura \ref{fig:hubs} si può osservare come i nodi di grado più alto\footnote{sono stati considerati come nodi gli hubs di grado almeno pari a 20} non tendano a connettersi tra loro. È possibile quindi supporre che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti con grado basso.
 
 \begin{figure}[H]
     \includegraphics[scale=0.3]{hubs}\centering
@@ -113,10 +113,10 @@ Come per le categorie, i risultati mostrati sono quelli relativi alle communitie
 In tabella \ref{tab:communitiesStats} sono disponibili le statistche estratte per le prime 10 communities. \\
 Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, per ogni community è stato calcolato il coefficiente di clustering medio per determinare il livello di coesione.  Inoltre ci si è posti l'obiettivo di identificare la sfera di interesse di ogni gruppo di prodotti e di darne una sorta di etichetta che possa riassumerne il contenuto. A tale scopo sono stati calcolati i seguenti campi:
 \begin{itemize}
-    \item \textbf{dominant category}: categoria dominante della community; calcolata come %TODO: zscore by rpo il bibliografo
-    \item \textbf{categories distribution}: distribuzione delle categorie principali presenti nella community
-    \item \textbf{top words}: parole più frequenti presenti nei titoli dei prodotti di una community; %TODO: RPO dire qualcosa sul come?
-    \item \textbf{top entities}: entità più frequenti estratte tramite entity recognition dai titoli dei prodotti di una community; %TODO: RPO dire qualcosa sul come?
+    \item \textbf{dominant category}: categoria dominante della community; estratta osservando con quale frequenza le categorie comparivano tra i prodotti della community tenendo in considerazione anche z-score delle frequenze.
+    \item \textbf{categories distribution}: distribuzione di frequenze relative delle categorie principali presenti nella community.
+    \item \textbf{top words}: parole più frequenti presenti nei titoli dei prodotti di una community; i titoli sono stati tokenizzati, ogni parola è stata resa lowercase e filtrata eliminando stop_words, punteggiatura e parole poco rappresentative della community come colori e numeri.
+    \item \textbf{top entities}: entità più frequenti estratte dai titoli dei prodotti di una community utilizzando l'entity recognition di spacy e in seguito filtrate in modo da eliminare quelle poco rilevanti come i colori.
 \end{itemize}
 
 \begin{small}
