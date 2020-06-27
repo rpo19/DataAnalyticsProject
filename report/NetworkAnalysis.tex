@@ -2,7 +2,7 @@
 L'analisi condotta sulla rete ha lo scopo di individuare gruppi di prodotti che interagiscono tra loro e di andare ad identificare quelli più strategici all'interno della rete tramite un'analisi di centralità. Nel seguito vengono descritte le scelte di costruzione della rete, definito il concetto di prodotto strategico ed infine presentate le analisi che partendo dalla globalità della rete scendono nei dettagli delle sottoreti più significative. 
 
 \subsection{Costruzione rete}
-Inizialmente sono state generate 3 reti diverse tenendo conto delle singole relazioni \textit{bought\_together}, \textit{also\_bought} e \textit{also\_viewed}. Da un studio generale è emerso che la relazione \textit{also\_viewed} risulti poco significativa per gli obiettivi preposti, per cui è stata scartata in quanto collega prodotti prettamente simili tra loro. Le relazioni di\textit{bought\_together} e \textit{also\_bought}, invece, permettono di portare alla luce prodotti diversi il cui impiego effettivo può dipendere l'uno dall'altro e ciò permette di stabilire se esistono prodotti particolarmente strategici all'interno della rete. Si è inoltre notato che le due relazioni in questione riportano spesso lo stesso prodotto come sia in \textit{bought\_together} che in \textit{also\_bought} e che inoltre la direzionalità della relazione \textit{also\_bought} sia indipendente da una temporalità di acquisto. \\
+Inizialmente sono state generate 3 reti diverse tenendo conto delle singole relazioni \textit{bought\_together}, \textit{also\_bought} e \textit{also\_viewed}. Da un studio generale è emerso che la relazione \textit{also\_viewed} risulti poco significativa per gli obiettivi preposti, per cui è stata scartata in quanto collega prodotti prettamente simili tra loro. Le relazioni di \textit{bought\_together} e \textit{also\_bought}, invece, permettono di portare alla luce prodotti diversi il cui impiego effettivo può dipendere l'uno dall'altro e ciò permette di stabilire se esistono prodotti particolarmente strategici all'interno della rete. Si è inoltre notato che le due relazioni in questione riportano spesso lo stesso prodotto come sia in \textit{bought\_together} che in \textit{also\_bought} e che inoltre la direzionalità della relazione \textit{also\_bought} sia indipendente da una temporalità di acquisto. \\
 Al netto di queste motivazioni, è state considerato ragionevole effettuare un'unione delle due relazioni in un'unica relazione di acquisto adirezionale. 
 \\\\
 Una volta stabilito il nuovo insieme di relazioni è stata necessaria una fase di pulizia per andare a scartare gli archi e i nodi superflui per la costruzione della rete. Per prima cosa è stato necessario rimuovere tutti gli archi di cui non sono presenti le informazioni relative al nodo destinazione. Dopodichè, sono state unite tutte le relazioni simmetriche in quanto la direzionalità delle relazioni non è significativa ai fini di questa analisi. Infine, sono stati rimossi dalla tabella dei prodotti tutti i nodi rimasti isolati dopo il filtraggio delle relazioni. Al termine del processo di pulizia si è passati da 82628 a 26572 per il numero di archi e da 20459 a 17914 per il numero di nodi. \\
@@ -12,7 +12,7 @@ A partire dal nuovo insieme di archi è stata quindi costruita la rete dei prodo
 
 \subsection{Concetti di prodotto centrale}
 In questa analisi con il termine \textbf{prodotto strategico} si intende quel prodotto che, se pubblicizzato in base a quanto emerge dalla rete, può costituire delle vendite facili verso chi acquista altri prodotti correlati ad esso. \\
-I prodotti strategici vengono individuati tramite il calcolo delle centralità dei nodi. In particolare, è la \textit{degree centrality} quella che permette di individuare i prodotti che hanno maggiori interazione con altri. Trovare un prodotto con centralità di grado alta significa trovare un prodotto con un ampio vicinato. Per questo motivo se si dovesse scegliere quali prodotti pubblicizzare a partire da uno specifico nodo, una scelta strategica potrebbe essere quella di dare priorità ai prodotti del vicinato con grado più alto. Questa misura di centralità sarà particolarmente per stabilire i prodotti più importanti all'interno delle sottoreti relative a categorie e communities. \\\\
+I prodotti strategici vengono individuati tramite il calcolo delle centralità dei nodi. In particolare, è la \textit{degree centrality} quella che permette di individuare i prodotti che hanno maggiori interazione con altri. Trovare un prodotto con centralità di grado alta significa trovare un prodotto con un ampio vicinato. Per questo motivo se si dovesse scegliere quali prodotti pubblicizzare a partire da uno specifico nodo, una scelta strategica potrebbe essere quella di dare priorità ai prodotti del vicinato con grado più alto. Questa misura di centralità sarà particolarmente utile per stabilire i prodotti più importanti all'interno delle sottoreti relative a categorie e communities. \\\\
 Una misura di centralità che può essere utile per un'analisi sulla rete nella sua globalità è quella della \textit{closeness centrality}. Tramite essa è possibile individuare i prodotti meglio posizionati per influenzare la rete più velocemente. Per esempio aggiungendo un annuncio pubblicitario sulla pagina del prodotto, esso sarà più velocemente raggiungibile dagli altri prodotti della rete seguendo una catena di acquisti.
    
 
@@ -46,7 +46,7 @@ In tabella \ref{tab:topDegreeFullNetwork} sono riportati i prodotti centrali del
 In tabella \ref{tab:topClosenessFullNetwork} sono invece riportati i prodotti centrali della rete in termini di closeness. \\
 
 \begin{small}
-\begin{table}[]
+\begin{table}[H]
     \begin{tabular}{|l|l|l|l|}
     \hline
     \textbf{id} & \textbf{title} & \textbf{degree} & \textbf{closeness} \\ \hline
@@ -62,7 +62,7 @@ In tabella \ref{tab:topClosenessFullNetwork} sono invece riportati i prodotti ce
 \end{small}
 
 \begin{small}
-\begin{table}[]
+\begin{table}[H]
     \begin{tabular}{|l|l|l|l|}
     \hline
     \textbf{id} & \textbf{title} & \textbf{degree} & \textbf{closeness} \\ \hline
@@ -82,7 +82,7 @@ Dopo aver osservato la rete nella sua globalità si è deciso di osservare le in
 \\\\
 In tabella \ref{tab:categoriesStats} sono disponibili le statistiche estratte per le prime 5 categorie più popolate. Per ogni categoria viene indicato il totale dei prodotti da cui è composta e il prodotto più centrale rispetto alla degree centrality con il rispettivo grado. \\\\
 \begin{small}
-    \begin{table}[]
+    \begin{table}[H]
         \begin{tabular}{|l|l|l|l|l|}
         \hline
         \textbf{category} & \textbf{cardinality} & \textbf{\begin{tabular}[c]{@{}l@{}}id max degree\\ product\end{tabular}} & \textbf{max degree} & \textbf{\begin{tabular}[c]{@{}l@{}}title max\\ degree product\end{tabular}} \\ \hline
@@ -101,7 +101,7 @@ Un comportamento analogo è stato riscontrato anche per molti altri prodotti con
 \\\\
 Osservando come si dispongono nella rete le diverse categorie, si può notare che una stessa categoria vada a formare gruppi distinguibili di prodotti. In figura \ref{fig:musicalInstruments} è riportato l'esempio per la categoria \textit{musical-instruments}. Per questo motivo, come si vedrà nella sezione successiva, è stata effettuata in seguito un processo di community detection sulla rete per individuare i reali gruppi di prodotti che si formano in base alle relazioni di acquisto.
 
-\begin{figure}[]
+\begin{figure}[H]
     \includegraphics[scale=0.35]{musicalInstruments}\centering
     \caption{Sottorete dei prodotti della categoria musical-instruments}\label{fig:musicalInstruments}
 \end{figure}
@@ -120,7 +120,7 @@ Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, p
 \end{itemize}
 
 \begin{small}
-\begin{table}[]
+\begin{table}[H]
     \tabcolsep=0.11cm
     \scalebox{0.7}{
     \begin{tabular}{|l|l|l|l|l|l|l|l|}
@@ -145,11 +145,11 @@ Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, p
 
 Nelle figure \ref{fig:wordCloud5} e \ref{fig:wordCloud7} si possono vedere rispettivamente le word clouds delle communities 5 e 7. Dalle immagini è facilmente intuibile che la prima verte su prodotti smart per la casa, mentre la seconda comprende prodotti accessori e prodotti legati alla chitarra. Ciò è confermato anche dalle entità più frequenti.
 
-\begin{figure}[]
+\begin{figure}[H]
     \includegraphics[scale=0.4]{wordCloud5}\centering
     \caption{Word cloud della community 5}\label{fig:wordCloud5}
 \end{figure}
-\begin{figure}[]
+\begin{figure}[H]
     \includegraphics[scale=0.4]{wordCloud7}\centering
     \caption{Word cloud della community 7}\label{fig:wordCloud7}
 \end{figure}
