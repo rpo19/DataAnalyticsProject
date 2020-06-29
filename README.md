@@ -2,6 +2,8 @@
 
 ## Installation
 
+### Install Python3 and R
+
 ### Python Virtual environment preparation
 
 It is suggested (not mandatory) to use a virtual environment:
