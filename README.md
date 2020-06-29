@@ -50,7 +50,11 @@ We used `.Rmd` notebook with the help of `jupytext` in order to be able to versi
 
 * Manually open jupyter webapp if needed (probably at [http://localhost:8888/](http://localhost:8888/))
 
-* Open a notebook from `src` folder
+* Open a notebook from `src` folder:
+
+    * `Network.Rmd`: contains network analysis over products
+
+    * `Sentiment.Rmd`: contains sentiment analysis over reviews
 
 ### Dash app
 
