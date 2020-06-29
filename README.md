@@ -2,7 +2,7 @@
 
 ## Installation
 
-### Virtual environment preparation
+### Python Virtual environment preparation
 
 It is suggested (not mandatory) to use a virtual environment:
 
@@ -38,6 +38,17 @@ python -m spacy download it_core_news_sm
 
 N.B: some requirements may need a C++ compiler installed in the machine (e.g. spacy)
 
+### R dependency
+
+Install `sentix` from [https://github.com/valeriobasile/sentixR](https://github.com/valeriobasile/sentixR) and its dependencies:
+```
+install.packages(c("udpipe", "dplyr", "https://github.com/valeriobasile/sentixR/raw/master/sentix_0.0.0.9000.tar.gz"))
+```
+
+## Data
+
+Put `products.json` and `reviews.json` datasets inside `data` folder
+
 ## Usage
 
 Activate first the virtual environment if any
@@ -58,11 +69,15 @@ We used `.Rmd` notebook with the help of `jupytext` in order to be able to versi
 
 ### Dash app
 
-* Enter `webapp` folder (e.g. `cd webapp`)
+* Enter `src` folder (e.g. `cd src`)
 
 * Run the app:
     ```
-    python app.py
+    python webapp/app.py
+    ```
+    or for windows
+    ```
+    python .\webapp\app.py
     ```
 
 * Go to [http://127.0.0.1:8050/](http://127.0.0.1:8050/). This link is also showed in previous command output
