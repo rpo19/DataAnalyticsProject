@@ -30,6 +30,11 @@ It is suggested (not mandatory) to use a virtual environment:
 ```
 pip install -r requirements.txt
 ```
+#### Spacy italian
+Run this command (see [https://spacy.io/models/it](https://spacy.io/models/it) for more)
+```
+python -m spacy download it_core_news_sm
+```
 
 N.B: some requirements may need a C++ compiler installed in the machine (e.g. spacy)
 
