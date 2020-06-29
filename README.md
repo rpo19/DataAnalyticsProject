@@ -43,8 +43,18 @@ N.B: some requirements may need a C++ compiler installed in the machine (e.g. sp
 ### R dependency
 
 Install `sentix` from [https://github.com/valeriobasile/sentixR](https://github.com/valeriobasile/sentixR) and its dependencies:
+
+* Download `sentix_0.0.0.9000.tar.gz` from github (e.g `wget https://github.com/valeriobasile/sentixR/raw/master/sentix_0.0.0.9000.tar.gz`)
+
+* Install R dependencies (from R shell):
 ```
-install.packages(c("udpipe", "dplyr", "https://github.com/valeriobasile/sentixR/raw/master/sentix_0.0.0.9000.tar.gz"))
+install.packages(c("udpipe", "dplyr"))
+```
+
+* Install `sentix` from downloaded archive (seems `--no-staged-install` is required due to hardcoded paths).  
+Run this from `bash`/`cmd`:
+```
+R CMD INSTALL --no-staged-install sentix_0.0.0.9000.tar.gz
 ```
 
 ## Data
