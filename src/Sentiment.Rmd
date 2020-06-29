@@ -46,14 +46,7 @@ from sklearn.model_selection import cross_val_score
 from sklearn.model_selection import cross_validate
 from sklearn.metrics import accuracy_score, confusion_matrix
 
-
-#LDA
-import gensim
-import gensim.corpora as corpora
-from gensim.models import CoherenceModel
-import pyLDAvis.gensim
-import pickle 
-import pyLDAvis
+import pickle
 
 import subprocess
 ```

@@ -1,4 +1,4 @@
-# DataAnalysisProject
+# DataAnalyticsProject
 
 ## Installation
 
