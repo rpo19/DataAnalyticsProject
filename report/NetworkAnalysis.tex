@@ -78,7 +78,7 @@ In tabella \ref{tab:topClosenessFullNetwork} sono invece riportati i prodotti ce
 \end{small}
 
 \subsection{Analisi categorie}
-Dopo aver osservato la rete nella sua globalità si è deciso di osservare le interazioni tra i prodotti dividendo la rete rispetto alle categorie. I risultati mostrati sono quelli relativi alle categorie più grandi in quanto, avendo a disposizione una porzione non bilanciata del dataset dei prodotti di amazon, sono le più significative. 
+Dopo aver osservato la rete nella sua globalità si è deciso di osservare le interazioni tra i prodotti dividendo la rete rispetto alle categorie. I risultati mostrati sono quelli relativi alle categorie più grandi in quanto, avendo a disposizione una porzione non bilanciata del dataset dei prodotti di Amazon, sono le più significative. 
 \\\\
 In tabella \ref{tab:categoriesStats} sono disponibili le statistiche estratte per le prime 5 categorie più popolate. Per ogni categoria viene indicato il totale dei prodotti da cui è composta e il prodotto più centrale rispetto alla degree centrality con il rispettivo grado. \\\\
 \begin{small}
@@ -115,8 +115,8 @@ Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, p
 \begin{itemize}
     \item \textbf{Dominant Category}: categoria dominante della community; estratta osservando con quale frequenza le categorie compaiono tra i prodotti della community tenendo in considerazione anche lo z-score delle frequenze.
     \item \textbf{Categories Distribution}: distribuzione di frequenze relative delle categorie principali presenti nella community.
-    \item \textbf{Top Words}: parole più frequenti presenti nei titoli dei prodotti di una community; i titoli sono stati tokenizzati, ogni parola è stata resa lowercase e filtrata eliminando \textit{stop-words}, punteggiatura e parole poco rappresentative della community come colori e numeri.
-    \item \textbf{Top Entities}: entità più frequenti estratte dai titoli dei prodotti di una community utilizzando l'entity recognition di \textit{Spacy} e in seguito filtrate in modo da eliminare quelle poco rilevanti come i colori.
+    \item \textbf{Top Words}: parole più frequenti presenti nei titoli dei prodotti di una community; i titoli sono stati divisi in token, ogni token è stato reso lowercase e filtrato eliminando \textit{stop-words}, punteggiatura e parole poco rappresentative della community come colori e numeri.
+    \item \textbf{Top Entities}: entità più frequenti estratte dai titoli dei prodotti di una community tramite entity recognition e in seguito filtrate in modo da eliminare quelle poco rilevanti come i colori.
 \end{itemize}
 
 \begin{small}
