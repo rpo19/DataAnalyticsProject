@@ -1,0 +1,155 @@
+\section{Rete prodotti}\label{ReteProdotti}
+L'analisi condotta sulla rete ha lo scopo di individuare gruppi di prodotti che interagiscono tra loro e di andare ad identificare quelli più rilevanti all'interno di essa tramite un'analisi di centralità. Nel seguito vengono descritte le scelte di costruzione della rete, definito il concetto di prodotto rilevante ed infine presentate le analisi che partendo dalla globalità della rete scendono nei dettagli delle sottoreti più significative. 
+
+\subsection{Costruzione rete}
+Inizialmente sono state generate 3 reti diverse tenendo conto delle singole relazioni \textit{bought\_together}, \textit{also\_bought} e \textit{also\_viewed}. Da uno studio generale è emerso che la relazione \textit{also\_viewed} risulti poco significativa per gli obiettivi preposti, per cui è stata scartata in quanto collega prodotti prettamente simili tra loro. Le relazioni \textit{bought\_together} e \textit{also\_bought}, invece, permettono di portare alla luce prodotti diversi il cui impiego effettivo può dipendere l'uno dall'altro e ciò permette di stabilire se esistono prodotti particolarmente strategici all'interno della rete. Si è inoltre notato che le due relazioni in questione riportano spesso lo stesso prodotto sia in \textit{bought\_together} che in \textit{also\_bought} e che inoltre la direzionalità della relazione \textit{also\_bought} sia indipendente dall'ordine temporale di acquisto. \\
+Al netto di queste motivazioni, è state considerato ragionevole effettuare un'unione delle due relazioni in un'unica relazione di acquisto adirezionale. 
+\\\\
+Una volta stabilito il nuovo insieme di relazioni è stata necessaria una fase di pulizia per andare a scartare gli archi e i nodi superflui per la costruzione della rete. Per prima cosa è stato necessario rimuovere tutti gli archi di cui non sono presenti le informazioni relative al nodo destinazione. Dopodiché, sono state unite tutte le relazioni simmetriche in quanto la direzionalità delle relazioni non è utile ai fini di questa analisi. Infine, sono stati rimossi dalla tabella dei prodotti tutti i nodi rimasti isolati dopo il filtraggio delle relazioni. Al termine del processo di pulizia si è passati da 82628 a 26572 per il numero di archi e da 20459 a 17914 per il numero di nodi. \\
+A partire dal nuovo insieme di archi è stata quindi costruita la rete dei prodotti tramite un grafo non orientato.
+
+
+
+\subsection{Concetto di prodotto rilevante}
+In questa analisi con il termine \textbf{prodotto rilevante} si intende quel prodotto che, se pubblicizzato in base a quanto emerge dalla rete, può costituire delle vendite facili verso chi acquista altri prodotti correlati ad esso. \\
+I prodotti strategici vengono individuati tramite il calcolo delle centralità dei nodi. In particolare, è la \textit{degree centrality} quella che permette di individuare i prodotti che hanno maggiori interazione con altri. Trovare un prodotto con centralità di grado alta significa trovare un prodotto con un ampio vicinato. Per questo motivo se si dovesse scegliere quali prodotti pubblicizzare a partire da uno specifico nodo, una scelta strategica potrebbe essere quella di dare priorità ai prodotti del vicinato con grado più alto. Questa misura di centralità sarà particolarmente utile per stabilire i prodotti più importanti all'interno delle sottoreti relative a categorie e communities. \\\\
+Un'ulteriore misura di centralità che invece può essere utile per un'analisi sulla rete nella sua globalità è quella della \textit{closeness centrality}. Tramite essa è possibile individuare i prodotti centrali meglio posizionati per influenzare la rete più velocemente. Per esempio aggiungendo un annuncio pubblicitario sulla pagina del prodotto, esso sarà più velocemente raggiungibile dagli altri prodotti della rete seguendo una catena di acquisti.
+   
+
+\subsection{Analisi generale}
+La rete che è stata costruita conta un totale di 962 componenti connesse, tra cui una giant component (figura \ref{fig:giantComponent}) costituita da 11,937 nodi e 18,991 archi. \\
+In figura \ref{fig:distribuzioneGradi} è mostrata la distribuzione dei gradi. Computando l'average degree (2.966) si osserva che mediamente un prodotto tende ad essere connesso con altri 3 prodotti. Il coefficiente di clustering medio dell'intera rete è pari a 0.286, quindi mediamente per un nodo si ha che due prodotti vicini siano connessi con il 30\% di probabilità. La densità della rete ha un valore molto basso, pari a 0.000165 . \\\\
+
+\begin{figure}[]
+    \includegraphics[scale=0.45]{giantComponent}\centering
+    \caption{Giant component colorata per categorie e con dimensione dei nodi data dalla degree centrality}\label{fig:giantComponent}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[scale=0.37]{distribuzioneGradi}\centering
+    \caption{Distribuzione dei gradi nella rete completa}\label{fig:distribuzioneGradi}
+\end{figure}
+
+Calcolando il coefficiente di assortatività sull'intera rete si ottiene un valore di -0.0194 che, essendo negativo, permette di asserire che la rete sia di tipo disassortativo. È infatti possibile osservare nel grafico in figura \ref{fig:assortativity} come i nodi  con grado più alto, seppur in modo non nettamente marcato, tendano a connettersi a nodi con grado basso. A conferma di ciò, in figura \ref{fig:hubs} si può osservare come i nodi con più interazioni\footnote{sono stati considerati come nodi gli hubs di grado almeno pari a 20} non tendano a connettersi tra loro. È possibile quindi supporre che nella rete sono più frequenti gli acquisti di prodotti con centralità di grado alta in combinazione con prodotti di bassa centralità. Data la natura della rete, la rimozione di un prodotto hub potrebbe quindi portare ad isolare i prodotti con grado basso.
+
+\begin{figure}[H]
+    \includegraphics[scale=0.3]{hubs}\centering
+    \caption{Nodi hubs con grado almeno pari a 20 isolati dal resto della rete}\label{fig:hubs}
+\end{figure}
+
+\begin{figure}[H]
+    \includegraphics[scale=0.37]{assortativity}\centering
+    \caption{Grafico di degree correlation}\label{fig:assortativity}
+\end{figure}
+
+In tabella \ref{tab:topDegreeFullNetwork} sono riportati i prodotti centrali della rete in termini di grado, ossia quelli definiti precedentemente come prodotti rilevanti. \\
+In tabella \ref{tab:topClosenessFullNetwork} sono invece riportati i prodotti centrali della rete in termini di closeness. \\
+
+\begin{small}
+\begin{table}[H]
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+    \textbf{id} & \textbf{title} & \textbf{degree} & \textbf{closeness} \\ \hline
+    B0792HCFTG & Echo Dot (3 generazione) & 0.002233 & 0.055939 \\
+    B07P24R81S & \begin{tabular}[c]{@{}l@{}}Gfone 8 Set di strumenti per manicure\\  per unghie da 8 pezzi\end{tabular} & 0.002121 & 0.057762 \\
+    B07DMJPV31 & FIFA 19 - PlayStation 4 & 0.002065 & 0.052239 \\
+    B07PYGPZZF & RFID Blocking Porta Carte di Credito & 0.001730 & 0.060146 \\
+    B00UFGMVFG & \begin{tabular}[c]{@{}l@{}}Bruzzzler 200100001066 Ciminiera con\\ impugnatura di sicurezza\end{tabular} & 0.001618 & 0.039824 \\ \hline
+    \end{tabular}
+    \caption{Tabella top 5 prodotti per degree centrality}
+    \label{tab:topDegreeFullNetwork}
+\end{table}
+\end{small}
+
+\begin{small}
+\begin{table}[H]
+    \begin{tabular}{|l|l|l|l|}
+    \hline
+    \textbf{id} & \textbf{title} & \textbf{degree} & \textbf{closeness} \\ \hline
+    B07PYGPZZF & RFID Blocking Porta Carte di Credito & 0.001730 & 0.060146 \\
+    B07PBFJTZG & Willful Cuffie Bluetooth 5.0 & 0.001116 & 0.057851 \\
+    B07P24R81S & \begin{tabular}[c]{@{}l@{}}Gfone 8 Set di strumenti per manicure\\ per unghie da 8 pezzi\end{tabular} & 0.002121 & 0.057762 \\
+    B07NQ7JJKJ & \begin{tabular}[c]{@{}l@{}}Feob Orologio Fitness Tracker Pressione \\ Sanguigna Cardiofrequenzimetro da Polso\end{tabular} & 0.000223 & 0.057703 \\
+    B07GFT2NS8 & Rolsac - Cagliplast Rotolo con Scatola Esterna & 0.001451 & 0.057644 \\ \hline
+    \end{tabular}
+    \caption{Tabella top 5 prodotti per closeness centrality}
+    \label{tab:topClosenessFullNetwork}
+    \end{table}
+\end{small}
+
+\subsection{Analisi categorie}
+Dopo aver osservato la rete nella sua globalità si è deciso di osservare le interazioni tra i prodotti dividendo la rete rispetto alle categorie. I risultati mostrati sono quelli relativi alle categorie più grandi in quanto, avendo a disposizione una porzione non bilanciata del dataset dei prodotti di Amazon, sono le più significative. 
+\\\\
+In tabella \ref{tab:categoriesStats} sono disponibili le statistiche estratte per le prime 5 categorie più popolate. Per ogni categoria viene indicato il totale dei prodotti da cui è composta e il prodotto più centrale rispetto alla degree centrality con il rispettivo grado. \\\\
+\begin{small}
+    \begin{table}[H]
+        \begin{tabular}{|l|l|l|l|l|}
+        \hline
+        \textbf{category} & \textbf{cardinality} & \textbf{\begin{tabular}[c]{@{}l@{}}id max degree\\ product\end{tabular}} & \textbf{max degree} & \textbf{\begin{tabular}[c]{@{}l@{}}title max\\ degree product\end{tabular}} \\ \hline
+        kitchen & 1784 & B00M94FVO0 & 12 & \begin{tabular}[c]{@{}l@{}}Vileda Asse da \\ Stiro Smart\end{tabular} \\
+        electronics & 1143 & B07MJKSZFM & 8 & \begin{tabular}[c]{@{}l@{}}iBetter per Xiaomi \\ Redmi Note 7 Cover\end{tabular} \\
+        tools & 1125 & B0076VLVXG & 10 & \begin{tabular}[c]{@{}l@{}}BLACK+DECKER \\ A7188-XJ Set per Forare\\  ed Avvitare\end{tabular} \\
+        books & 993 & 8806240986 & 12 & La versione di Fenoglio \\
+        apparel & 946 & B00I0DF9I2 & 10 & \begin{tabular}[c]{@{}l@{}}Navigare 512 Maglietta\\  intima Uomo\end{tabular} \\ \hline
+        \end{tabular}
+        \caption{Tabella statistiche delle top 5 categorie}
+        \label{tab:categoriesStats}
+        \end{table}
+\end{small}
+Prendendo per esempio il nodo centrale della categoria \textit{kitchen}, esso corrisponde al prodotto di un asse da stiro. Verificando i prodotti del suo vicinato, ossia quelli comprati spesso in combinazione con lo stesso, si osserva che sono per lo più ferri da stiro. Questo è un chiaro esempio di come il prodotto centrale in termini di grado sia in realtà un prodotto accessorio rispetto al suo vicinato. Essendo quindi un prodotto comune per diversi prodotti principali può essere considerato un prodotto strategico data la sua più facile vendibilità. \\
+Un comportamento analogo è stato riscontrato anche per molti altri prodotti tra quelli con degree centrality maggiore.
+\\\\
+Osservando come si dispongono nella rete le diverse categorie, si può notare che una stessa categoria vada a formare gruppi distinguibili di prodotti. In figura \ref{fig:musicalInstruments} è riportato l'esempio per la categoria \textit{musical-instruments}. Per questo motivo, come si vedrà nella sezione successiva, è stato effettuato in seguito un processo di community detection sulla rete per individuare i reali gruppi di prodotti che si formano in base alle relazioni di acquisto.
+
+\begin{figure}[H]
+    \includegraphics[scale=0.35]{musicalInstruments}\centering
+    \caption{Sottorete dei prodotti della categoria musical-instruments}\label{fig:musicalInstruments}
+\end{figure}
+
+\subsection{Analisi communities}
+Le communities della rete sono state individuate mediante l'algoritmo Clauset-Newman-Moore greedy modularity maximization. Tramite questo algoritmo sono state trovate 1064 communities. Il numero elevato era prevedibile data la grande quantità pari a 962 delle componenti connesse. Si è osservato, inoltre, che le communities più rilevanti fanno tutte parte della giant component, la quale ne contiene 103. \\\\
+Come per le categorie, i risultati mostrati sono quelli relativi alle communities più numerose. 
+\\\\
+In tabella \ref{tab:communitiesStats} sono disponibili le statistiche estratte per le prime 10 communities. \\
+Oltre a fornire la cardinalità e gli elementi centrali come per le categorie, per ogni community è stato calcolato il coefficiente di clustering medio per determinare il livello di coesione.  Inoltre ci si è posti l'obiettivo di identificare la sfera di interesse di ogni gruppo di prodotti e di darne una sorta di etichetta che possa riassumerne il contenuto. A tale scopo sono stati calcolati i seguenti campi:
+\begin{itemize}
+    \item \textbf{Dominant Category}: categoria dominante della community; estratta osservando con quale frequenza le categorie compaiono tra i prodotti della community tenendo in considerazione anche lo z-score delle frequenze.
+    \item \textbf{Categories Distribution}: distribuzione di frequenze relative delle categorie principali presenti nella community.
+    \item \textbf{Top Words}: parole più frequenti presenti nei titoli dei prodotti di una community; i titoli sono stati divisi in token, ogni token è stato reso lowercase e filtrato eliminando \textit{stop-words}, punteggiatura e parole poco rappresentative della community come colori e numeri.
+    \item \textbf{Top Entities}: entità più frequenti estratte dai titoli dei prodotti di una community tramite entity recognition e in seguito filtrate in modo da eliminare quelle poco rilevanti come i colori.
+\end{itemize}
+
+\begin{small}
+\begin{table}[H]
+    \tabcolsep=0.11cm
+    \scalebox{0.7}{
+    \begin{tabular}{|l|l|l|l|l|l|l|l|}
+    \hline
+    \textbf{id} & \textbf{\begin{tabular}[c]{@{}l@{}}dominant \\ category\end{tabular}} & \textbf{cardinality} & \textbf{max degree} & \textbf{\begin{tabular}[c]{@{}l@{}}max degree \\ product title\end{tabular}} & \textbf{\begin{tabular}[c]{@{}l@{}}avg clust. \\ coeff.\end{tabular}} & \textbf{top words} & \textbf{top entitites} \\ \hline
+    1 & videogames & 520 & 36 & FIFA 19 - PlayStation & 0.19467 & \begin{tabular}[c]{@{}l@{}}playstation, \\ nintendo, \\ switch\end{tabular} & \begin{tabular}[c]{@{}l@{}}PlayStation 4, \\ Nintendo Switch, \\ Regno Unito\end{tabular} \\ \hline
+    2 & music & 450 & 21 & Fleurs .(Vinile Ross... & 0.36605 & \begin{tabular}[c]{@{}l@{}}vinile, \\ esclusiva, \\ amazon.it\end{tabular} & \begin{tabular}[c]{@{}l@{}}Esclusiva Amazon.it,\\ Notti Brave,\\ Playlist\end{tabular} \\ \hline
+    3 & appliances & 383 & 22 & Wpro SKS101 Kit di a... & 0.22555 & \begin{tabular}[c]{@{}l@{}}lavatrice, \\ libera, \\ installazione\end{tabular} & \begin{tabular}[c]{@{}l@{}}Litri, Ciarra,\\ Argento\end{tabular} \\ \hline
+    4 & electronics & 363 & 26 & RFID Blocking Porta... & 0.12357 & \begin{tabular}[c]{@{}l@{}}led, luce, \\ impermeabile\end{tabular} & \begin{tabular}[c]{@{}l@{}}iPhone, Confezione, \\ Lampada Solare\end{tabular} \\ \hline
+    5 & lighting & 313 & 38 & Echo Dot (3 generazione) & 0.27407 & \begin{tabular}[c]{@{}l@{}}led, smart, \\ wifi\end{tabular} & \begin{tabular}[c]{@{}l@{}}Google Home, Alexa, \\ Amazon Alexa\end{tabular} \\ \hline
+    6 & tools & 313 & 37 & Gfone 8 Set di strum... & 0.18641 & \begin{tabular}[c]{@{}l@{}}led, lampada, \\ batteria\end{tabular} & \begin{tabular}[c]{@{}l@{}}Batteria, \\ Tablet, \\ Lampada\end{tabular} \\ \hline
+    7 & musical-instruments & 274 & 29 & Cordes pour guitare... & 0.25264 & \begin{tabular}[c]{@{}l@{}}chitarra, corde, \\ acustica\end{tabular} & \begin{tabular}[c]{@{}l@{}}Corde, \\ Chitarra, \\ Basso\end{tabular} \\ \hline
+    8 & baby & 240 & 21 & jane, Mutande post-p... & 0.27871 & \begin{tabular}[c]{@{}l@{}}chicco, pezzi, \\ bambini\end{tabular} & \begin{tabular}[c]{@{}l@{}}Confezione, \\ Grigio, \\ 2 Pezzi\end{tabular} \\ \hline
+    9 & luggage & 240 & 14 & Travel Buddy, Lucche... & 0.15322 & \begin{tabular}[c]{@{}l@{}}viaggio, \\ bagaglio, \\ mano\end{tabular} & \begin{tabular}[c]{@{}l@{}}Bagaglio, \\ Pollici, \\ Ryanair\end{tabular} \\ \hline
+    10 & jewelry & 239 & 17 & Fablcrew - Bracciale... & 0.25089 & \begin{tabular}[c]{@{}l@{}}argento, \\ regalo, \\ braccialetto\end{tabular} & \begin{tabular}[c]{@{}l@{}}Sterling 925, \\ Orecchini, \\ San Valentino\end{tabular} \\ \hline
+    \end{tabular}
+    }
+    \caption{Tabella statistiche delle top 10 communities}
+    \label{tab:communitiesStats}
+\end{table}
+\end{small}
+
+Nelle figure \ref{fig:wordCloud5} e \ref{fig:wordCloud7} si possono vedere rispettivamente le word clouds delle communities 5 e 7. Dalle immagini è facilmente intuibile che la prima verte su prodotti smart per la casa, mentre la seconda comprende accessori e prodotti legati alla chitarra. Ciò è confermato anche dalle entità più frequenti.
+
+\begin{figure}[H]
+    \includegraphics[scale=0.4]{wordCloud5}\centering
+    \caption{Word cloud della community 5}\label{fig:wordCloud5}
+\end{figure}
+\begin{figure}[H]
+    \includegraphics[scale=0.4]{wordCloud7}\centering
+    \caption{Word cloud della community 7}\label{fig:wordCloud7}
+\end{figure}

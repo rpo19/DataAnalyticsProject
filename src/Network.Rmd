@@ -1,0 +1,553 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.2
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+## Imports
+
+```{python}
+# !pip install --upgrade -r requirements.txt
+```
+
+```{python}
+import pandas as pd
+import string
+import nltk
+import operator
+import scipy
+import json
+import random
+import spacy
+import base64
+import re
+import os
+
+from random import randint
+from tqdm.notebook import tqdm
+tqdm.pandas()
+import statistics
+
+from collections import Counter
+# #%matplotlib notebook
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import numpy as np
+
+import pickle
+# import igraph as ig
+import networkx as nx
+from community import generate_dendrogram, community_louvain
+from networkx.algorithms.community import greedy_modularity_communities
+
+from wordcloud import WordCloud
+from pandas.plotting import scatter_matrix
+```
+
+```{python}
+nltk.download('punkt')
+nltk.download('stopwords')
+```
+
+## Data importation
+
+```{python}
+data = pd.read_json('../data/products.json', lines=True)
+```
+
+```{python}
+# clean numeric values
+def cleanProducts():
+    data['price'] = data['price'].apply(lambda dictValue : float(list(dictValue.values())[0]) if dictValue != None else float(0))
+    data['avg_rating'] = data['avg_rating'].apply(lambda dictValue : float(list(dictValue.values())[0]) if dictValue != None else float(0))
+    data['reviews_number'] = data['reviews_number'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+    data['questions_number'] = data['questions_number'].apply(lambda dictValue : int(list(dictValue.values())[0]) if dictValue != None else int(0))
+```
+
+```{python}
+cleanProducts()
+```
+
+```{python}
+data
+```
+
+# Network
+
+
+## Utils
+
+```{python}
+def filterEdges(edges, weight):
+    return edges.loc[edges['weight'] in weight]
+
+def csvCreateNodes():
+    # export nodes for cytoscape
+    data['title'] = data['title'].replace(to_replace='[ \t]+', value=' ', regex=True)
+    data.to_csv("../networkData/cytoProducts.csv",columns=["_id", "title", "category", "price", "avg_rating", \
+                                   "reviews_number", "questions_number", 'community'], sep="\t", index=False)
+
+def csvCreateEdges():        
+    # create complete list of edges
+    edges = []
+    for i, row in data.iterrows():
+        for subrow in row['bought_together']:
+            ft = {'from': row['_id'], 'to': subrow, 'weight': 3}
+            edges.append(ft)
+        for subrow in row['also_bought']:
+            ft = {'from': row['_id'], 'to': subrow, 'weight': 2}
+            edges.append(ft)
+        for subrow in row['also_viewed']:
+            ft = {'from': row['_id'], 'to': subrow, 'weight': 1}
+            edges.append(ft)
+
+    edges = pd.DataFrame(edges)
+    # keep a copy the complete list... maybe it will be useful in future
+    all_edges = pd.DataFrame(edges)
+
+    nodes = data['_id']
+    print("# edges:", len(edges))
+    print("# nodes:", len(nodes))
+    
+    # remove also_viewed and merge also_bought with bought_together
+    edges = all_edges.loc[all_edges['weight'] != 1][['from','to']]
+    print("# edges:", len(edges))
+    edges
+    
+    # remove edges with not available products
+    for i, edge in edges.iterrows():
+        if edge['to'] in data['_id'].values:
+            continue
+        else:
+            edges = edges.drop(i)
+
+    print("# edges:", len(edges))
+    
+    
+    # remove symmetries
+    edges = pd.DataFrame.from_records(list({tuple(sorted(item)) for item in edges.values}), columns=['from', 'to'])
+    edges = edges.drop_duplicates(subset=["from", "to"])
+
+    print("# edges:", len(edges))
+    
+    # export edges for cytoscape
+    edges.to_csv("../networkData/cytoEdges.csv", sep="\t", columns=["from", "to"], index=False)
+```
+
+# Network analysis
+
+
+## Read/Create edges
+
+```{python}
+try:
+    edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
+except:
+    csvCreateEdges()
+    edges = pd.read_csv('../networkData/cytoEdges.csv', sep='\t')
+```
+
+## Create full network
+
+```{python}
+# creating graph from edges
+full_graph = nx.from_pandas_edgelist(edges, source='from', target='to')
+```
+
+```{python}
+# connected components
+connected_components = list(nx.connected_components(full_graph))
+connected_components 
+```
+
+```{python}
+[len(c) for c in sorted(connected_components, key=len, reverse=True)]
+```
+
+### Giant component
+
+```{python}
+# creating subgraph of the giant component
+giant = full_graph.subgraph(list(max(nx.connected_components(full_graph), key=len)))
+```
+
+```{python}
+# average degree of full network
+statistics.mean(list(dict(list(nx.degree(full_graph))).values()))
+```
+
+```{python}
+# average clustering of full network
+nx.average_clustering(full_graph)
+```
+
+```{python}
+# density of full network
+nx.density(full_graph)
+```
+
+```{python}
+# assortativity coefficient of full network
+nx.degree_assortativity_coefficient(full_graph)
+```
+
+```{python}
+# degree correlation matrix of giant component
+matrix = nx.degree_mixing_matrix(giant)
+```
+
+```{python}
+# degree correlation
+plt.figure(figsize=(10,10))
+plt.imshow(matrix)
+plt.gca().invert_yaxis()
+plt.colorbar()
+```
+
+```{python}
+try:
+    centralitiesFullGraph = pd.read_csv('../networkData/centralitiesFullGraph.csv')
+except FileNotFoundError:
+    degree_cent = nx.degree_centrality(full_graph)
+    betweenness_cent = nx.betweenness_centrality(full_graph)
+    closeness_cent = nx.closeness_centrality(full_graph)
+    eigen_cent = nx.eigenvector_centrality(full_graph)
+    
+    centralitiesFullGraph = pd.DataFrame({'_id': list(degree_cent.keys()), 'degree': list(degree_cent.values()), \
+              'betweenness': list(betweenness_cent.values()), \
+             'closeness_cent': list(closeness_cent.values()), \
+             'eigen_cent': list(eigen_cent.values())})
+    
+    centralitiesFullGraph.to_csv('../networkData/centralitiesFullGraph.csv', index=False)
+```
+
+```{python}
+# top 5 product by highest degrees
+filteredDataCentDegree = data.loc[data['_id'].isin(centralitiesFullGraph.sort_values('degree', ascending=False)\
+                                             .head(5)['_id'].values)]
+```
+
+```{python}
+# top 5 products by degree and create csv
+if not os.path.isfile("../networkData/degreeFullGraph.csv"):
+    pd.merge(filteredDataCentDegree[['_id', 'title']], centralitiesFullGraph, on='_id')\
+    .sort_values('degree', ascending=False).to_csv('../networkData/degreeFullGraph.csv', index=False, sep='\t')
+```
+
+```{python}
+# top 5 product by highest degrees
+filteredDataCentCloseness = data.loc[data['_id'].isin(centralitiesFullGraph.sort_values('closeness_cent', ascending=False)\
+                                             .head(5)['_id'].values)]
+```
+
+```{python}
+# top 5 products by closeness and create csv
+if not os.path.isfile("../networkData/closenessFullGraph.csv"):
+    pd.merge(filteredDataCentCloseness[['_id', 'title']], centralitiesFullGraph, on='_id')\
+    .sort_values('closeness_cent', ascending=False).to_csv('../networkData/closenessFullGraph.csv', index=False, sep='\t')
+```
+
+### Top Values
+
+```{python}
+centralitiesFullGraph.sort_values('degree', ascending=False).head(5)
+```
+
+```{python}
+centralitiesFullGraph.sort_values('betweenness', ascending=False).head(5)
+```
+
+```{python}
+centralitiesFullGraph.sort_values('closeness_cent', ascending=False).head(5)
+```
+
+```{python}
+centralitiesFullGraph.sort_values('eigen_cent', ascending=False).head(5)
+```
+
+## Removing isolated nodes
+
+```{python}
+data = pd.DataFrame(data.loc[data['_id'].isin(list(full_graph))])
+len(data)
+```
+
+### Write cytoscape products csv
+
+```{python}
+if not os.path.isfile("../networkData/cytoProducts.csv"):
+    csvCreateNodes()
+```
+
+## Filter products by categories
+
+```{python}
+categories = data['category'].value_counts()
+print("number of categories: {}".format(len(categories)))
+print(categories)
+```
+
+## Example: centralities of a category
+
+```{python}
+products_by_cat = data.loc[data['category'] == 'musical-instruments']['_id'].values
+subgraph_cat = full_graph.subgraph(products_by_cat)
+degree_centrality = nx.degree_centrality(subgraph_cat)
+degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
+degrees_dict = dict(subgraph_cat.degree)
+degrees_dict = dict(sorted(degrees_dict.items(), key=operator.itemgetter(1),reverse=True))
+betweenness_centrality = nx.betweenness_centrality(subgraph_cat)
+betweenness_centrality = dict(sorted(betweenness_centrality.items(), key=operator.itemgetter(1),reverse=True))
+closeness_centrality = nx.closeness_centrality(subgraph_cat)
+closeness_centrality = dict(sorted(closeness_centrality.items(), key=operator.itemgetter(1),reverse=True))
+eigenvector_centrality = nx.eigenvector_centrality(subgraph_cat, max_iter=1000)
+eigenvector_centrality = dict(sorted(eigenvector_centrality.items(), key=operator.itemgetter(1),reverse=True))
+```
+
+## Compute stats for each category
+
+```{python}
+def computeStats(data, graph, main_df):
+    subgraph = graph.subgraph(data)
+    # cardinality
+    cardinality = len(data)
+    # degree centrality
+    degree_centrality = nx.degree_centrality(subgraph)
+    degree_centrality = dict(sorted(degree_centrality.items(), key=operator.itemgetter(1),reverse=True))
+    max_degree_id = list(degree_centrality.keys())[0]
+    max_degree_title = main_df.loc[main_df["_id"] == max_degree_id]["title"].values[0]
+    # degree
+    degrees = dict(subgraph.degree)
+    degrees = dict(sorted(degrees.items(), key=operator.itemgetter(1),reverse=True))
+    max_degree = list(degrees.values())[0]
+    
+    return cardinality, max_degree_id, max_degree, max_degree_title
+
+          
+```
+
+```{python}
+categories_dict = categories.to_dict()
+categories_lbl = list(categories.keys())
+
+categories_stats = pd.DataFrame(columns = ['category','cardinality','max_degree_id', 'max_degree', \
+                                           'max_degree_title'])
+
+for category in categories_lbl:
+    data_by_category = data.loc[data['category'] == category]['_id'].values
+    cardinality, max_degree_id, max_degree, max_degree_title = computeStats(data_by_category, full_graph, data)
+    categories_stats = categories_stats.append({'category':category,'cardinality':cardinality, 'max_degree_id':max_degree_id,\
+                             'max_degree':max_degree, 'max_degree_title': max_degree_title}, ignore_index = True)
+    
+categories_stats
+```
+
+```{python}
+# exporting top stats fro REPORT
+if not os.path.isfile('../networkData/categoriesStats.csv'):
+    categories_stats.head(5).to_csv('../networkData/categoriesStats.csv', index=False)
+```
+
+## Communities detection
+
+
+### Utils
+
+```{python}
+# communities detection
+def getCommunities(graph):
+    return sorted(greedy_modularity_communities(graph), key=len, reverse=True)
+
+np.seterr(all='raise')
+# zscore to extract top category from communities
+def getCategoryStatZ(categories, threshold, thresholdP, top):
+    try:
+        z = scipy.stats.zscore(categories)
+    except FloatingPointError:
+        if len(categories) == 1:
+            max_cat = categories.keys()[0]
+            # distrib = 1, zscore = 0
+            distrib = {max_cat: (np.float64(1.0),np.float64(0.0))}
+        else:
+            # all categories same wheight
+            max_cat = None
+            distrib = dict(zip(categories.head(top).keys(), zip(categories.values/sum(categories), np.zeros(len(categories)))))
+        return max_cat,distrib
+
+    max_cat = categories.keys()[z.argmax()] if z.max() >= threshold else None
+
+    distrib = categories[z.argsort()[::-1]].head(top)
+    sum_values = sum(distrib.values)
+    z[::-1].sort()
+    distrib = dict((ki, (di, zi)) for ki,di,zi in zip(distrib.keys(), distrib.values/sum_values, z))
+
+    first_cat = list(distrib.items())[0]
+    if max_cat is None and first_cat[1][0] >= thresholdP:
+    # zscore was not able to find a dominant category (e.g only 2 categories)
+    # check if category percentage higher than thresholdP
+        max_cat = first_cat[0]
+
+    return max_cat, distrib
+
+# extract top categories from communities (legacy)
+def getCategoryStats(categories, threshold, top):  
+    categories = categories.sort_values(ascending=False)
+    tot = sum(categories)
+    max_val = threshold*tot
+    max_cat = None
+    #distrib = pd.DataFrame(columns = ['category','value'])
+    distrib = {}
+    for key, value in categories.items():
+        # dominant category
+        if value >= max_val:
+            max_val = value
+            max_cat = key
+        # categories distribution
+        if key in categories.head(top):
+            #distrib = distrib.append({'category':key, 'value': value}, ignore_index = True)
+            distrib[key] = value
+    
+    # categories distribution
+    others_value = sum(categories.iloc[top:len(categories)])
+    #distrib.append({'category': 'others', 'value': others_value}, ignore_index = True)
+    distrib['others'] = others_value
+    return max_cat, distrib
+```
+
+### Communities analysis
+
+```{python}
+communities = getCommunities(full_graph)
+print("# communities:", len(communities))
+```
+
+```{python}
+communities = [list(x) for x in communities]
+```
+
+### Top Words and Entities Utils
+
+```{python}
+stop_words = nltk.corpus.stopwords.words('italian') + nltk.corpus.stopwords.words('english')
+
+stop_words += ["nero","bianco","giallo","rosso",
+               "verde","blu","celeste","azzurro",
+               "rosa","viola","arancione","arancio",
+               "marrone","grigi","uomo","donna"]
+
+punctuation = string.punctuation + "-"
+
+nlp = spacy.load("it_core_news_sm")
+
+pattern_numbers = r'^(?:(?:\d+,?)+(?:\.?\d+)?)$'
+regex_numbers = re.compile(pattern_numbers)
+
+def flatten(listoflists):
+    return [item for list in listoflists for item in list]
+
+def processTitlesSpacy(titles):
+    ret = titles.apply(lambda x: [ent.text for ent in nlp(x).ents if len(ent.text)>2 and \
+                                  ent.text.lower() not in stop_words and \
+                                  not re.match(regex_numbers, ent.text)])
+    ret = Counter(flatten(ret))
+    ret = dict(ret.most_common(50))
+    return ret
+
+def processTitlesSimple(titles):
+    ret = titles.apply(nltk.tokenize.word_tokenize)
+    ret = ret.apply(lambda x: [word.lower() for word in x if len(word)>2 and word.lower() \
+                               not in punctuation and word.lower() not in stop_words and \
+                               not re.match(regex_numbers, word)])
+    ret = Counter(flatten(ret))
+    return dict(ret.most_common(50))
+```
+
+```{python}
+# save wordcloud image in base64
+def word_cloud_to_base64(word_counter):
+    wordcloud = WordCloud(background_color='white').generate_from_frequencies(word_counter)
+    filename = "/tmp/wordcloud.png"
+    wordcloud.to_file(filename)
+    with open(filename, "rb") as wfile:
+        encoded = base64.b64encode(wfile.read()).decode('ascii')
+    return encoded
+```
+
+### Communities stats utils
+
+```{python}
+def getCommunitiesStats():
+    communities_stats = pd.DataFrame(columns = ['id','community', 'dominant_category', 'cardinality', 'max_degree_id',\
+                                                'max_degree', 'max_degree_title', 'avg_clust', 'top_words'])
+    for i, community in enumerate(communities):
+        # dominant category
+        categories = data.loc[data['_id'].isin(community)].groupby('category').count()['_id']
+        #dominant_category, categories_distribution = getCategoryStats(categories, 0.75, 3)
+        dominant_category, categories_distribution = getCategoryStatZ(categories, 1.5, 0.75, 3)
+        # compute stats
+        cardinality, max_degree_id, max_degree, max_degree_title = computeStats(community, full_graph, data)
+        avg_clust = nx.average_clustering(full_graph.subgraph(community))
+        communities_stats = communities_stats.append({'id': i+1,'community': community,'dominant_category': dominant_category,\
+                                                      'categories_distribution':categories_distribution,'cardinality':cardinality,\
+                                                      'max_degree_id':max_degree_id, 'max_degree':max_degree, \
+                                                      'max_degree_title': max_degree_title, 'avg_clust': avg_clust}, ignore_index = True)
+
+    # Assign community to each product
+    for _, community in communities_stats.iterrows():
+        rows = list(data.index[data['_id'].isin(community['community'])])
+        data.loc[rows, 'community'] = int(community['id'])
+    data
+
+    communities_stats["top_words"] = communities_stats["community"].apply(\
+                                            lambda x: processTitlesSimple(data.loc[data['_id'].isin(x)]["title"]))
+
+    communities_stats["top_ents"] = communities_stats["community"].apply(\
+                                            lambda x: processTitlesSpacy(data.loc[data['_id'].isin(x)]["title"]))
+
+    # creating wordclouds for top 10 communities by size
+    communities_stats["wordclouds"] = communities_stats.iloc[0:10]["top_words"].apply(word_cloud_to_base64)
+    
+    return communities_stats
+```
+
+## Compute communities stats
+
+```{python}
+try:
+    communities_stats = pd.read_pickle("../dataApp/communities_stats.pickle")
+except FileNotFoundError:
+    communities_stats = getCommunitiesStats()
+    communities_stats.to_pickle("../dataApp/communities_stats.pickle")
+```
+
+```{python}
+# extracting top 10 communities for REPORT
+if not os.path.isfile("../data/communities_stats_latex.csv"):
+    communities_stats_latex = communities_stats.iloc[0:10][["id", "dominant_category", "cardinality", "max_degree", \
+                      "max_degree_title", "avg_clust", "top_words", "top_ents"]]
+    communities_stats_latex["top_words"] = communities_stats_latex["top_words"].apply(lambda x: ", ".join(list(x.keys())[0:3]))
+    communities_stats_latex["top_ents"] = communities_stats_latex["top_ents"].apply(lambda x: ", ".join(list(x.keys())[0:3]))
+    communities_stats_latex["max_degree_title"] = communities_stats_latex["max_degree_title"].apply(lambda x: x[0:20])
+
+    communities_stats_latex.to_csv("../data/communities_stats_latex.csv", sep="\t", index=False)
+    communities_stats_latex.to_latex("../data/communities_stats_latex.tex")
+```
+
+### Example: wordcloud
+
+```{python}
+c = communities_stats.iloc[15]
+print(c)
+wordcloud = WordCloud(background_color='white').generate_from_frequencies(c["top_words"])
+plt.figure(figsize = (10, 8), facecolor = None) 
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+```

@@ -1,0 +1,66 @@
+\section{Sentiment analysis recensioni}\label{SentimentAnalysis}
+La sentiment analysis sulle recensioni è stata affrontata sotto diversi aspetti per raggiungere tre obiettivi principali. Il primo obiettivo è stato quello di verificare la corrispondenza tra la positività individuata dal numero di stelle e la polarità ottenuta tramite un approccio basato sul lessico. Il secondo obiettivo è stato quello di capire quale fosse il sentimento medio delle 3 stelle, le quali dovrebbero corrispondere ad un voto neutro. Questo obiettivo nasce dal fatto che una recensione a 3 stelle, seppur neutra, possa presentare delle sfumature più tendenti al positivo o negativo (es: "Prodotto di qualità mediocre, ma per il prezzo che ha fa il suo lavoro... Consigliato per chi vuole spendere poco" e "Non è il massimo... ci sono alternative migliori sul mercato e non credo che lo ricomprerei." potrebbero essere recensioni da 3 stelle che esprimono sentimento diverso). Infine, come ultimo obiettivo è stato reputato interessante lo studio dell'evoluzione nel tempo del sentimento, rapportato anche all'evoluzione del numero di stelle, di alcuni prodotti d'esempio. 
+\\\\
+Nel seguito viene presentato il lavoro attraverso due approcci in quanto il primo (\ref{ApproccioLexiconBased}), basato sul lessico, ha portato a scarsi risultati, per cui ad esso è stato preferito un approccio basato sul machine learning (\ref{ApproccioMachineLearning}).
+In entrambi gli approcci l'attributo della recensione su cui viene condotta l'analisi è quello del \textit{body}. È stato inoltre deciso di etichettare come positive le recensioni con \textit{rating} $>$ 3 e come negative quelle con \textit{rating} $<$ 3 per poter dare una stima dell'accuratezza dei risultati ottenuti.
+
+
+\subsection{Approccio Lexicon Based}\label{ApproccioLexiconBased}
+La lingua italiana del dataset porta ad avere una cerchia più ristretta di alternative per effettuare una sentiment analysis. L'approccio che è stato adottato fa affidamento al lessico di Sentix, grazie al quale è stato possibile assegnare alle recensioni una polarità ottenuta dalla somma delle polarità delle parole considerate. Ogni record del lessico è costituito da un lemma, dal tipo (nome, verbo, aggettivo, ecc.) e da diversi scores\footnote{\url{http://valeriobasile.github.io/twita/sentix.html}}. 
+\\\\
+Questo metodo è stato testato su un campione casuale di 1000 recensioni etichettate come positive e 1000 come negative. Le recensioni in questione sono state estratte da un sottoinsieme attendibile, ottenuto tramite l'intersezione di quelle di acquisti verificati (\textit{verified = true}) e di quelle considerate utili da almeno un utente (\textit{helpful $>$ 0}). Considerando come positive le recensioni con polarità $>$ 0, come negative quelle con polarità $<$ 0 e scartando quelle per cui Sentix non ha riscontrato parole nel lessico, si ottiene un'accuratezza pari a 0.605 . In tabella \ref{tab:matriceConfusione} è disponibile la matrice di confusione, dalla quale si può notare che la maggior parte delle recensioni venga classificata come positiva. Questo risultato è coerente con quanto si era potuto osservare dalla word cloud in figura \ref{fig:wordCloudNeg} mostrata nel capitolo \ref{EsplorazioneDataset}, dalla quale si non si nota un netto spicco delle parole negative.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{l|l|l|}
+    \cline{2-3}
+     & \textbf{NEG} & \textbf{POS} \\ \hline
+    \multicolumn{1}{|l|}{\textbf{NEG}} & 279 & 718 \\ \hline
+    \multicolumn{1}{|l|}{\textbf{POS}} & 68 & 929 \\ \hline
+    \end{tabular}
+    \caption{Matrice di confusione classificazione recensioni con Sentix}
+    \label{tab:matriceConfusione}
+\end{table}
+
+È stato inoltre verificato che non ci fosse una correlazione tra i valori della polarità rispetto al rating, sia aggregato per 1-2 e 4-5 stelle che preso singolarmente. Questo per stabilire se le polarità potessero essere coerenti con il rating considerando un intervallo di valori diverso per distinguere recensioni positive e negative. I valori ottenuti come coefficiente di correlazione di Pearson sono rispettivamente di 0.369 e 0.347, quindi si può concludere che non ci sia correlazione.
+\\\\
+Gli scarsi risultati hanno portato a scartare l'approccio e a prenderne in considerazione uno alternativo per poter perseguire gli obiettivi preposti sulla tendenza di utilizzo delle 3 stelle e sull'andamento della polarità nel tempo.
+
+\subsection{Approccio Machine Learning}\label{ApproccioMachineLearning}
+
+
+Anche in questo caso, avendo a disposizione un numero di recensioni molto elevato, si è deciso di utilizzare il sottoinsieme filtrato su quelle che sono sia verificate che considerate utili da almeno un utente in quanto considerate più affidabili per addestrare il modello. Per bilanciare il numero di recensioni positive molto più alto di quelle negative da dare in input al modello è stato fatto undersampling ed è stato ottenuto un insieme di 321,642 esempi divisi in due tra le classi. 
+Tutte le recensioni sono state divise in token e ripulite da: stopwords, punteggiatura (sono stati aggiunti alcuni simboli molto ricorrenti nel testo delle recensioni), numeri, tokens di lunghezza 1 ed è stato effettuato lo stemming. Questo passaggio è essenziale per consentire l'eliminazione di rumore e quindi un migliore funzionamento dell'algoritmo di machine learning. \\
+Data la natura binaria della variabile target, il modello scelto è stato quello di \textit{LogisticRegression}, un modello di regressione non lineare. Il modello utilizzato per rappresentare il testo delle recensioni in un linguaggio interpretabile dal calcolatore è il \textit{CountVectorizer} (\textit{Bag of Words}).\\
+Gli esempi da utilizzare per il modello sono stati divisi con proporzione 80\% train e 20\% test. Il modello è stato costruito sfruttando l'inseme di train e successivamente è stato valutato sull'insieme di test producendo un valore di accuratezza pari a 0.90. Nella tabella \ref{tab:matriceConfusioneModello} è stata riportata la matrice di confusione ottenuta. 
+\\
+Successivamente il modello è stato validato tramite la tecnica 10-Fold Cross-Validation per verificare la veridicità dei risultati ottenuti precedentemente. Tramite quest'ultima tecnica sono stati ottenuti risultati in linea con quelli ottenuti nel test.\\\\
+\begin{table}[H]\centering
+    \begin{tabular}{l|l|l|}
+    \cline{2-3}
+     & \textbf{NEG} & \textbf{POS} \\ \hline
+    \multicolumn{1}{|l|}{\textbf{NEG}} & 28866 & 3253 \\ \hline
+    \multicolumn{1}{|l|}{\textbf{POS}} & 2808 & 29402 \\ \hline
+    \end{tabular}
+    \caption{Matrice di confusione classificazione recensioni con modello di regressione logistica}
+    \label{tab:matriceConfusioneModello}
+\end{table}
+%AAAAAAAAAAAAAAAA: da qui in poi i risultati che mostriamo dovremmo tirarli fuori dalle recensioni non filtrate
+
+Con il modello ottenuto è stato poi possibile calcolare il sentimento delle recensioni su alcuni prodotti d'esempio per osservarne l'andamento nel tempo rispetto al trend delle stelle. In questo caso, per avere un insieme di valori più ampio e tracciare un grafico migliore, sono state considerate anche le recensioni non verificate e non marcate come utili. Dopo aver effettuato la previsione del sentimento, è stata calcolata la media dei valori raggruppati per mese ed è stata tracciata la curva nel tempo. Come si può vedere in figura \ref{fig:andamentoSentimentoProdotto}, la curva del sentimento e quella del numero medio di stelle\footnote{i valori medi del numero di stelle sono stati portati in una scala compresa tra 0 e 1} seguono lo stesso andamento. Inoltre, è stato calcolato un valore per rappresentare il trend della curva del sentimento, il quale corrisponde al coefficiente angolare della retta che meglio approssima la curva. Dato un prodotto, è quindi possibile verificare se il sentimento delle recensioni sia in crescita o meno. \\\\
+
+\begin{figure}[H]
+    \includegraphics[scale=0.45]{andamentoSentimentoProdotto}\centering
+    \caption{Andamento di sentimento e numero di stelle nel tempo per il prodotto "Kingston Dtig4/32Gb Datatraveler Memoria Flash, US"}\label{fig:andamentoSentimentoProdotto}
+\end{figure}
+
+
+
+Come ultima cosa, è stato utilizzato il modello per verificare il sentimento medio rispetto all'utilizzo delle 3 stelle. I risultati ottenuti mostrano come il 46.8\% (figura \ref{fig:torta}) delle recensioni sia positivo, dimostrando quindi che non ci sia una tendenza dominante verso un sentimento.
+
+
+\begin{figure}[H]
+    \includegraphics[scale=0.45]{risultatiRecensioniNeutre}\centering
+    \caption{Risultati ottenuti applicando il modello costruito sulle recensioni neutre}\label{fig:torta}
+\end{figure}
+

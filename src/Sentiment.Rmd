@@ -1,0 +1,677 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.2'
+      jupytext_version: 1.4.2
+  kernelspec:
+    display_name: Python 3
+    language: python
+    name: python3
+---
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from nltk.tokenize import word_tokenize
+import itertools
+from collections import Counter
+import nltk
+from nltk.stem.snowball import SnowballStemmer
+
+import string
+from nltk import wordpunct_tokenize
+
+from wordcloud import WordCloud
+from datetime import datetime
+import pickle
+import re
+import os
+
+#progress bar
+from tqdm import tqdm, tqdm_notebook
+
+# instantiate
+tqdm.pandas(tqdm_notebook)
+
+# model evaluation
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_validate
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+import pickle
+
+import subprocess
+```
+
+```{python}
+stop_words=nltk.corpus.stopwords.words('italian')
+punctuation = string.punctuation
+punctuation = punctuation + "..."+ "''" + "``" + "--"
+```
+
+### Utils
+
+```{python}
+def convert_to_int(field):
+    return field["$numberInt"]
+```
+
+```{python}
+def clean_sentence(sentence,stemming=True):
+    try:
+        tokens = word_tokenize(sentence)
+    except:
+        tokens = []
+    tokens_clean = []
+    for word in tokens:
+        if word.lower() not in stop_words and word.lower() not in punctuation and not word.isnumeric() and len(word)> 1:
+            if stemming:
+                tokens_clean.append(stemmer.stem(word.lower()))
+            else:
+                tokens_clean.append(word.lower())
+    return ' '.join(tokens_clean)
+```
+
+```{python}
+def flat_list(l):
+    return  [item for sublist in l for item in sublist]
+```
+
+```{python}
+def plot_common_tokens(tokens, title, n=20):
+    sentences = (list(itertools.chain(tokens)))
+    flat_sentences = flat_list(sentences)
+    counts = Counter(flat_sentences)
+    #print(counts.most_common(30))
+    common_words = [word[0] for word in counts.most_common(n)]
+    common_counts = [word[1] for word in counts.most_common(n)]
+    fig = plt.figure(figsize=(18,6))
+    sns.barplot(x=common_words, y=common_counts)
+    plt.title(title)
+    plt.show()
+```
+
+```{python}
+def word_Cloud(sentences):
+    flat_sentences = flat_list(sentences)
+    counter = Counter(flat_sentences)
+    cdict = dict(counter.most_common(50))
+
+    wordcloud = WordCloud(background_color="white").generate_from_frequencies(cdict)
+    plt.figure(figsize = (10, 8), facecolor = None) 
+    plt.imshow(wordcloud, interpolation='bilinear')
+    plt.axis("off")
+    plt.show()
+```
+
+## Data import
+
+```{python}
+dataReviewsChunk = pd.read_json('../data/reviews.json', lines=True, chunksize=10000)
+```
+
+```{python}
+dataReviewsChunk
+```
+
+```{python}
+chunk_list = []  # append each chunk df here 
+
+# Each chunk is in df format
+for chunk in dataReviewsChunk:
+
+    chunk_list.append(chunk)
+```
+
+```{python}
+dataReviews = pd.concat(chunk_list)
+```
+
+```{python}
+dataReviews.head()
+```
+
+```{python}
+len(dataReviews)
+```
+
+```{python}
+dataReviews["rating"]=dataReviews["rating"].apply(convert_to_int).astype(int)
+```
+
+```{python}
+dataReviews["helpful"]=dataReviews["helpful"].apply(convert_to_int).astype(int)
+```
+
+## Removing not verified and not helpful reviews
+
+```{python}
+def getDataReviewsReduced():
+    try:
+        dataReviewsReduced = pd.read_csv("../data/dati_ridotti.csv", sep=",", index_col=0)
+    except FileNotFoundError:
+        dataReviewsReduced = dataReviews.loc[dataReviews["verified"] == True]
+        dataReviewsReduced = dataReviewsReduced.loc[dataReviews["helpful"] != 0]
+        dataReviewsReduced.to_csv("../data/dati_ridotti.csv", sep=",")
+    return dataReviewsReduced
+dataReviewsReduced = getDataReviewsReduced()
+```
+
+### Analysis
+
+```{python}
+counts = dataReviews["rating"].value_counts()
+```
+
+```{python}
+counts.values
+```
+
+```{python}
+x = counts._index
+print(x)
+y = counts.values
+print(y)
+```
+
+```{python}
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+```{python}
+print("Proportion of review with score=1: {}%".format(len(dataReviews[dataReviews.rating == 1]) / len(dataReviews)*100))
+print("Proportion of review with score=2: {}%".format(len(dataReviews[dataReviews.rating == 2]) / len(dataReviews)*100))
+print("Proportion of review with score=3: {}%".format(len(dataReviews[dataReviews.rating == 3]) / len(dataReviews)*100))
+print("Proportion of review with score=4: {}%".format(len(dataReviews[dataReviews.rating == 4]) / len(dataReviews)*100))
+print("Proportion of review with score=5: {}%".format(len(dataReviews[dataReviews.rating == 5]) / len(dataReviews)*100))
+```
+
+```{python}
+# empty reviews
+dataReviews[dataReviews["body"].str.len() == 0]
+```
+
+## Sentix
+
+### Preparing dataset for sentiment analysis
+
+```{python}
+dataReviews_POS = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating > 3].sample(1000))
+dataReviews_POS['target'] = 'positive'
+dataReviews_POS['polarity'] = 'None'
+```
+
+```{python}
+dataReviews_NEG = pd.DataFrame(dataReviewsReduced[dataReviewsReduced.rating < 3].sample(1000))
+dataReviews_NEG['target'] = 'negative'
+dataReviews_NEG['polarity'] = 'None'
+```
+
+```{python}
+# export csv to do sentix in R
+dataReviews_POS.to_csv('../data/dataReviews_POS.csv', index=False, sep=',')
+dataReviews_NEG.to_csv('../data/dataReviews_NEG.csv', index=False, sep=',')
+```
+
+### Execute SentimentR.R
+
+```{python}
+# EXECUTE R CODE; it could take a while
+# Rscript SentimentR.R
+subprocess.run(["Rscript", "SentimentR.R"])
+```
+
+### Read reviews polarized
+
+```{python}
+# import csv after sentix in R
+dataReviews_POS = pd.read_csv('../data/dataReviews_POS_pol.csv', sep=',')
+dataReviews_NEG = pd.read_csv('../data/dataReviews_NEG_pol.csv', sep=',')
+```
+
+```{python}
+dataReviews_POS = dataReviews_POS[dataReviews_POS['polarity'] != 'None']
+dataReviews_NEG  = dataReviews_NEG [dataReviews_NEG ['polarity'] != 'None']
+```
+
+```{python}
+# merging dataframes
+dataReviews_pol = pd.concat([dataReviews_POS,dataReviews_NEG], ignore_index=True)
+```
+
+```{python}
+dataReviews_pol.head()
+```
+
+```{python}
+# preparation for confusion matrix
+dataReviews_pol['polarity_lbl'] = dataReviews_pol['polarity']\
+    .apply(lambda x: 'positive' if float(x) > 0 else 'negative' )
+# preparation for correlation coefficient
+dataReviews_pol['target_binary'] = dataReviews_pol['target']\
+    .apply(lambda x: 1 if x == 'positive' else 0 )
+```
+
+```{python}
+sentix_conf_mat = confusion_matrix(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
+sentix_accuracy = accuracy_score(dataReviews_pol['target'], dataReviews_pol['polarity_lbl'])
+print("Sentix confusion matrix:\n{}".format(sentix_conf_mat))
+print("Sentix accuracy:\n{}".format(sentix_accuracy))
+```
+
+```{python}
+corrcoefBinary = np.corrcoef(dataReviews_pol['target_binary'], dataReviews_pol['polarity'].astype(float))
+corrcoefRating = np.corrcoef(dataReviews_pol['rating'], dataReviews_pol['polarity'].astype(float))
+print("Correlation coefficient between positive/negative rating and polarity from sentix:\n{}".format(corrcoefBinary))
+print("Correlation coefficient 0-5 rating and polarity from sentix:\n{}".format(corrcoefRating))
+```
+
+### Compare distribution of polarity and ratings
+
+```{python}
+dataReviews_pol['polarity'].astype(float).hist()
+```
+
+```{python}
+dataReviews_pol['rating'].hist()
+```
+
+Polarity from sentix distribution is higher in the middle in opposition to rating distribution
+
+
+## Preprocessing for supervised ML approach
+
+
+#### Convert rating into polarity label (positive/neutral/negative)
+
+```{python}
+dataReviews.loc[dataReviews['rating'] == 3 , 'polarity'] = 'neutral'
+dataReviews.loc[dataReviews['rating'] > 3 , 'polarity'] = 'positive'
+dataReviews.loc[dataReviews['rating'] < 3 , 'polarity'] = 'negative'
+```
+
+```{python}
+counts = dataReviews["polarity"].value_counts()
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+```{python}
+positive_reviews = dataReviews.loc[dataReviews['polarity'] == "positive" ] 
+```
+
+```{python}
+# reduce dataset to save time
+positive_reviews = positive_reviews.sample(10000)
+```
+
+```{python}
+# on the entire dataset -> slow
+positive_reviews["cleaned"] = positive_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+positive_reviews['token']= positive_reviews['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+negative_reviews = dataReviews.loc[dataReviews['polarity'] == "negative"] 
+```
+
+```{python}
+# reduce dataset to save time
+negative_reviews = negative_reviews.sample(10000)
+```
+
+```{python}
+# on the entire dataset -> slow
+negative_reviews["cleaned"] = negative_reviews["body"].progress_apply(lambda x: clean_sentence(x,False))
+negative_reviews['token'] = negative_reviews['cleaned'].progress_apply(word_tokenize)
+```
+
+```{python}
+word_Cloud(positive_reviews['token'])
+```
+
+```{python}
+word_Cloud(negative_reviews['token'])
+```
+
+```{python}
+def undersampling(df):
+    positive, negative, _ = df.polarity.value_counts()
+    df_positive = df[df.polarity == 'positive']
+    df_positive = df_positive.sample(negative, random_state=1)
+    df_negative = df[df.polarity == 'negative']
+    df = pd.concat([df_positive, df_negative])
+    return df
+```
+
+```{python}
+dataReviewsUndersampled = undersampling(dataReviews)
+```
+
+```{python}
+counts = dataReviewsUndersampled["polarity"].value_counts()
+fig = plt.figure(figsize=(18,6))
+sns.barplot(x=counts._index, y=counts.values)
+plt.title("Rating distribution")
+plt.show()
+```
+
+### Tokenization
+
+```{python}
+dataReviewsUndersampled['token']=dataReviewsUndersampled['body'].progress_apply(word_tokenize)
+```
+
+### Stopwords
+
+```{python}
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["token"]\
+    .progress_apply(lambda sentence : [word for word in sentence if word.lower() not in stop_words])
+```
+
+```{python}
+plot_common_tokens(dataReviewsUndersampled["cleaned"], "Most Common Tokens from Reviews without StopWords")
+```
+
+### Punctuation
+
+```{python}
+print(punctuation)
+```
+
+```{python}
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["cleaned"]\
+    .progress_apply(lambda sentence : [word for word in sentence if word not in punctuation])
+```
+
+```{python}
+plot_common_tokens(dataReviewsUndersampled["cleaned"], "Most Common Tokens from Reviews without Punctuation")
+```
+
+### Numbers
+
+```{python}
+regex_numbers = r'(?:(?:\d+,?)+(?:\.?\d+)?)'
+```
+
+```{python}
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["cleaned"].progress_apply(\
+               lambda sentence : [re.sub(regex_numbers,"",word) \
+                              for word in sentence if re.sub(regex_numbers,"",word) != ""])
+```
+
+```{python}
+plot_common_tokens(dataReviewsUndersampled["cleaned"], "Most Common Tokens from Reviews without Numbers")
+```
+
+### Delete single char tokens
+
+```{python}
+dataReviewsUndersampled["cleaned"] = dataReviewsUndersampled["cleaned"]\
+        .progress_apply(lambda sentence : [word for word in sentence if len(word)> 1])
+```
+
+```{python}
+plot_common_tokens(dataReviewsUndersampled['cleaned'],'Most Common Tokens used in Reviews without single char tokens')
+```
+
+```{python}
+len(dataReviewsUndersampled["cleaned"])
+```
+
+```{python}
+word_Cloud(dataReviewsUndersampled["cleaned"])
+```
+
+```{python}
+sentences = (list(itertools.chain(dataReviewsUndersampled["cleaned"])))
+flat_sentences = flat_list(sentences)
+counts = Counter(flat_sentences)
+counts.most_common()
+```
+
+### Stemming
+
+```{python}
+stemmer = SnowballStemmer("italian")
+def stemming_token(sentence,stemmer):
+    stem = []
+    for elem in sentence:
+        stem.append(stemmer.stem(elem))
+    return stem
+```
+
+```{python}
+dataReviewsUndersampled["stemming"] = dataReviewsUndersampled["cleaned"]\
+        .progress_apply(lambda x: stemming_token(x, stemmer))
+```
+
+```{python}
+dataReviewsUndersampled["stemming"]
+```
+
+```{python}
+len(dataReviewsUndersampled)
+```
+
+```{python}
+plot_common_tokens(dataReviewsUndersampled['stemming'],'Most Common Tokens used in Reviews')
+```
+
+## Model definition
+
+
+### CountVectorizer
+
+```{python}
+try:
+    with open('../model/bow.bin', 'rb') as f:
+        bow = pickle.load(f)
+
+except FileNotFoundError:
+    count_vect = CountVectorizer(stop_words=None, lowercase=True)
+    #lowercase = true -> Convert all characters to lowercase before tokenizing.
+    #stop_words = None -> If None, no stop words will be used
+    bow = count_vect.fit(dataReviewsUndersampled['stemming'].apply(lambda x: " ".join(x)))
+    with open('../model/bow.bin', 'wb') as f:
+        pickle.dump(bow, f, pickle.HIGHEST_PROTOCOL)
+```
+
+### Split dataset into train (80%) and test (20%)
+
+```{python}
+X_train, X_test, y_train, y_test = train_test_split(dataReviewsUndersampled['stemming']\
+                .apply(lambda x: " ".join(x)), dataReviewsUndersampled['polarity'], test_size=0.2, random_state=1)    
+```
+
+```{python}
+print("train size: ",len(X_train))
+print("test size:",len(X_test))
+```
+
+```{python}
+print("y train distribution:\n",y_train.value_counts())
+print("y train distribution:\n",y_test.value_counts())
+```
+
+### Model fit
+
+```{python}
+try:
+    with open('../model/model.bin', 'rb') as f:
+        model = pickle.load(f)
+except FileNotFoundError:
+    model = LogisticRegression()
+    model.fit(bow.transform(X_train), y_train)
+
+    with open('../model/model.bin', 'wb') as f:
+        pickle.dump(model, f, pickle.HIGHEST_PROTOCOL)
+```
+
+### Evaluation
+
+```{python}
+predictions = model.predict(bow.transform(X_test))
+print("predictions:\n{}".format(predictions))
+
+my_accuracy_score = accuracy_score(y_test, predictions)
+print("accuracy_score:\n{}".format(my_accuracy_score))
+
+cmatrix = confusion_matrix(y_test, predictions)
+print("confusion matrix:\n{}".format(cmatrix))
+
+scores = cross_val_score(model, bow.transform(dataReviewsUndersampled['stemming'].apply(lambda x: " ".join(x))), dataReviewsUndersampled['polarity'], cv=10)
+print("cross_val_score:\n{}".format(scores))
+print("Accuracy cross_val_scores: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+
+scoring = ['precision_macro', 'recall_macro']
+scores = cross_validate(model, bow.transform(dataReviewsUndersampled['stemming'].apply(lambda x: " ".join(x))), dataReviewsUndersampled['polarity'], scoring=scoring,
+                        cv=10, return_train_score=False)
+print("cross_validate with scoring = {}:\n{}".format(scoring, scores))
+```
+
+### Use model with costum sentences
+
+```{python}
+sentence="Prodotto di qualità mediocre, ma per il prezzo che ha fa il suo lavoro... Consigliato per chi vuole spendere poco"
+```
+
+```{python}
+clean_sentence(sentence)
+```
+
+```{python}
+print(bow.transform([clean_sentence(sentence)]))
+```
+
+```{python}
+model.predict(bow.transform([clean_sentence(sentence)]))
+```
+
+### 3-starred reviews sentiment classification
+
+```{python}
+dataReviews_neutral = dataReviews.loc[dataReviews["rating"]==3]
+```
+
+```{python}
+dataReviews_neutral
+```
+
+### Transforming sentences to arrays
+
+```{python}
+dataReviews_neutral["polarity"] = dataReviews_neutral["body"]\
+    .progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)])))
+```
+
+```{python}
+dataReviews_neutral["polarity"]
+```
+
+```{python}
+print("Proportion of review with score=3 that is positive: {}%".format(len(dataReviews_neutral[dataReviews_neutral.polarity == "positive"]) / len(dataReviews_neutral)*100))
+print("Proportion of review with score=3 that is negative: {}%".format(len(dataReviews_neutral[dataReviews_neutral.polarity == "negative"]) / len(dataReviews_neutral)*100))
+```
+
+```{python}
+dataReviews_neutral["polarity"].value_counts().plot(kind="bar")
+
+```
+
+### Products sentiment trend in time
+
+```{python}
+# GOOD EXAMPLES:
+top_products = dataReviews.groupby('product').count().sort_values('_id', ascending=False).head(4)
+```
+
+```{python}
+dataReviews_products = dataReviews[dataReviews["product"].isin(top_products.index)]
+```
+
+```{python}
+# adding Period field = year-month
+dataReviews_products["Period"] = dataReviews_products["date"].apply(lambda x: x.strftime('%Y-%m'))
+```
+
+```{python}
+dataReviews_products["Period"].iloc[0]
+```
+
+```{python}
+dataReviews_products["polarity"] = dataReviews_products["body"]\
+    .progress_apply(lambda sentence: model.predict(bow.transform([clean_sentence(sentence)]))[0])
+```
+
+```{python}
+dataReviews_products["polarityNum"] = dataReviews_products["polarity"].apply(lambda x: 1 if x == "positive" else 0)
+```
+
+```{python}
+dataReviews_products_month = dataReviews_products[["product", "Period", "rating", "polarityNum"]]\
+    .groupby(['product', 'Period']).mean()
+```
+
+```{python}
+dataReviews_products_month
+```
+
+```{python}
+# scaling rating to 0-1
+dataReviews_products_month["rating"] = dataReviews_products_month["rating"] / 5
+```
+
+```{python}
+dataReviews_products_month.loc[top_products.index[0]].plot()
+```
+
+```{python}
+dataReviews_products_month[["rating", "polarityNum"]]
+```
+
+### Computing reviews trendline over time
+
+```{python}
+# returns coefficient and points of the trendline
+def trendline(df):
+    coeffs = np.polyfit(range(0,len(df.index)), df, 1)
+    #slope = coeffs[-2]
+    return coeffs[-2], [coeffs[-2] * x + coeffs[-1] for x in range(0,len(df.index))]
+```
+
+```{python}
+coeffs = []
+lines = []
+for i in dataReviews_products_month.index.get_level_values(0).value_counts().index:
+    coeff, line = trendline(dataReviews_products_month.loc[i]["polarityNum"])
+    lines += line
+    coeffs += [coeff] * len(line)
+```
+
+```{python}
+dataReviews_products_month["trendCoeff"] = coeffs
+dataReviews_products_month["trendLine"] = lines
+```
+
+```{python}
+dataReviews_products_month.loc[top_products.index[0]].plot()
+```
+
+```{python}
+if not os.path.isfile("../data/dataReviewsMonthly.csv"):
+    dataReviews_products_month.to_csv("../data/dataReviewsMonthly.csv")
+```
