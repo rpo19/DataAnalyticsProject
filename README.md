@@ -1,5 +1,7 @@
 # DataAnalyticsProject
 
+For a description of the project look at [Report.pdf](report/Report.pdf)
+
 ## Installation
 
 ### Install Python3 and R
@@ -51,7 +53,7 @@ Install `sentix` from [https://github.com/valeriobasile/sentixR](https://github.
 install.packages(c("udpipe", "dplyr"))
 ```
 
-* Install `sentix` from downloaded archive (seems `--no-staged-install` is required due to hardcoded paths).  
+* Install `sentix` from downloaded archive (seems `--no-staged-install` is required due to hardcoded paths).
 Run this from `bash`/`cmd`:
 ```
 R CMD INSTALL --no-staged-install sentix_0.0.0.9000.tar.gz
