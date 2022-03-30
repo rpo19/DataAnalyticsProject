@@ -1,6 +1,13 @@
 # DataAnalyticsProject
 
-For a description of the project look at [Report.pdf](report/Report.pdf)
+The project consists the exploration and analysis of a dataset composed by Amazon products and reviews.
+Specifically we conducted:
+- a network analysis considering the relations *bought together*, *also bought*, and *also viewed* between different products;
+- a sentitment analysis of the reviews' descriptions with two main objectives:
+    - investigating the relation between the sentiment of the description and the star-rating of the entire review;
+    - studying the evolution in time of the reviews' sentiment of a set of products. 
+
+For a detailed description of the project look at [Report.pdf](report/Report.pdf)
 
 ## Installation
 
